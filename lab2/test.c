@@ -39,20 +39,4 @@ int main(void)
     printf("\n");
     print_v4(mat4_mult_v4(m1, v1));
     printf("\n");
-
-
-    mat4 minvTest = {
-        (vec4){-4, -1, -4, -1},
-        (vec4){0, 2, 4, -9},
-        (vec4){0, 0, 4, -1},
-        (vec4){0, 0, 0, 1}
-    };
-
-    print_mat4(minvTest);
-    printf("\n");
-
-    print_mat4(inv_mat4(minvTest));
-    printf("\n");
-
-    print_mat4(mat4_mult_mat4(minvTest, inv_mat4(minvTest)));
 }
