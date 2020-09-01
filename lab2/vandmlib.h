@@ -55,5 +55,13 @@ mat4 trans_mat4(mat4 m);
 
 vec4 mat4_mult_v4(mat4 m, vec4 v);
 
+/*Helper functions that I would like to have just in case
+
+float sarrus(float a, float b, float c, float d, float e, float f, float g, float h, float i);
+
+mat4 minor_mat4(mat4 m);
+
+mat4 cofact_mat4(mat4 m);
+*/
 
 #endif

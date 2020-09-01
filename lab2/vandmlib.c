@@ -101,7 +101,61 @@ mat4 mat4_mult_mat4(mat4 a, mat4 b)
     };
 }
 
-mat4 inv_mat4(mat4 m);
+float sarrus(float a, float b, float c, float d, float e, float f, float g, float h, float i)
+{
+    return a*e*i + b*f*g + c*d*h - g*e*c - h*f*a - i*d*b;
+}
+
+mat4 minor_mat4(mat4 m)
+{
+    return (mat4){
+        (vec4){
+            sarrus(m.y.y, m.z.y, m.w.y, m.y.z, m.z.z, m.w.z, m.y.w, m.z.w, m.w.w) /* m11 */,
+            sarrus(m.y.x, m.z.x, m.w.x, m.y.z, m.z.z, m.w.z, m.y.w, m.z.w, m.w.w) /* m21 */,
+            sarrus(m.y.x, m.z.x, m.w.x, m.y.y, m.z.y, m.w.y, m.y.w, m.z.w, m.w.w) /* m31 */,
+            sarrus(m.y.x, m.z.x, m.w.x, m.y.y, m.z.y, m.w.y, m.y.z, m.z.z, m.w.z) /* m41 */
+        },
+        (vec4){
+            sarrus(m.x.y, m.z.y, m.w.y, m.x.z, m.z.z, m.w.z, m.x.w, m.z.w, m.w.w) /* m12 */,
+            sarrus(m.x.x, m.z.x, m.w.x, m.x.z, m.z.z, m.w.z, m.x.w, m.z.w, m.w.w) /* m22 */,
+            sarrus(m.x.x, m.z.x, m.w.x, m.x.y, m.z.y, m.w.y, m.x.w, m.z.w, m.w.w) /* m32 */,
+            sarrus(m.x.x, m.z.x, m.w.x, m.x.y, m.z.y, m.w.y, m.x.z, m.z.z, m.w.z) /* m42 */
+        },
+        (vec4){
+            sarrus(m.x.y, m.y.y, m.w.y, m.x.z, m.y.z, m.w.z, m.x.w, m.y.w, m.w.w) /* m13 */,
+            sarrus(m.x.x, m.y.x, m.w.x, m.x.z, m.y.z, m.w.z, m.x.w, m.y.w, m.w.w) /* m23 */,
+            sarrus(m.x.x, m.y.x, m.w.x, m.x.y, m.y.y, m.w.y, m.x.w, m.y.w, m.w.w) /* m33 */,
+            sarrus(m.x.x, m.y.x, m.w.x, m.x.y, m.y.y, m.w.y, m.x.z, m.y.z, m.w.z) /* m43 */
+        },
+        (vec4){
+            sarrus(m.x.y, m.y.y, m.z.y, m.x.z, m.y.z, m.z.z, m.x.w, m.y.w, m.z.w) /* m14 */,
+            sarrus(m.x.x, m.y.x, m.z.x, m.x.z, m.y.z, m.z.z, m.x.w, m.y.w, m.z.w) /* m24 */,
+            sarrus(m.x.x, m.y.x, m.z.x, m.x.y, m.y.y, m.z.y, m.x.w, m.y.w, m.z.w) /* m34 */,
+            sarrus(m.x.x, m.y.x, m.z.x, m.x.y, m.y.y, m.z.y, m.x.z, m.y.z, m.z.z) /* m44 */
+        },
+    };
+}
+
+mat4 cofact_mat4(mat4 m)
+{
+    return (mat4){
+        (vec4){m.x.x, m.x.y * -1, m.x.z, m.x.w * -1},
+        (vec4){m.y.x * -1, m.y.y, m.y.z * -1, m.y.w},
+        (vec4){m.z.x, m.z.y * -1, m.z.z, m.z.w * -1},
+        (vec4){m.w.x * -1, m.w.y, m.w.z * -1, m.w.w}
+    };
+}
+
+float determ_mat4(mat4 a) //Assume given a mat4.
+{
+    mat4 m = minor_mat4(a);
+    return a.x.x*m.x.x - a.y.x*m.y.x + a.z.x*m.z.x -  a.w.x*m.w.x;
+}
+
+mat4 inv_mat4(mat4 m)
+{
+    return scalar_mult_mat4(1/determ_mat4(m), trans_mat4(cofact_mat4(minor_mat4(m))));
+};
 
 mat4 trans_mat4(mat4 m)
 {
