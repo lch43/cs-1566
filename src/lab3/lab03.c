@@ -17,24 +17,8 @@
 
 #define BUFFER_OFFSET( offset )   ((GLvoid*) (offset))
 
-/*vec4 vertices[6] =
-{{ 0.0,  0.5,  0.0, 1.0},	// top
- {-0.5, -0.5,  0.0, 1.0},	// bottom left
- { 0.5, -0.5,  0.0, 1.0},	// bottom right
- { 0.5,  0.8, -0.5, 1.0},	// top
- { 0.9,  0.0, -0.5, 1.0},	// bottom right
- { 0.1,  0.0, -0.5, 1.0}};	// bottom left
-
-vec4 colors[6] =
-{{1.0, 0.0, 0.0, 1.0},	// red   (for top)
- {0.0, 1.0, 0.0, 1.0},	// green (for bottom left)
- {0.0, 0.0, 1.0, 1.0},	// blue  (for bottom right)
- {0.0, 1.0, 0.0, 1.0},	// green  (for bottom right)
- {0.0, 1.0, 0.0, 1.0},	// green  (for bottom right)
- {0.0, 1.0, 0.0, 1.0}};	// green  (for bottom right)*/
-
 /* For now we can keep this constant since we will not be changing it*/
-const int coneSides = 90;
+const int coneSides = 20;
 int num_vertices = coneSides * 2 * 3;
 
 /*
@@ -58,7 +42,6 @@ void createCone(float tipY, float height, float width, vec4 * vertices)
         float base1Z = (float) (width * cos(rad1));
         float base2X = (float) (width * sin(rad2));
         float base2Z = (float) (width * cos(rad2));
-        printf("%f , %f \n", (angle * vertex), (angle * (vertex+1)));
         
         /*Vertical sides*/
         vertices[vertexOffset] = (vec4) {0.0, tipY, 0.0 , 1.0};
@@ -75,8 +58,7 @@ void createCone(float tipY, float height, float width, vec4 * vertices)
 void colorCone(vec4 * colors)
 {
     int side;
-    float colorVariation = 510.00 / (coneSides-1);
-    printf("%f", colorVariation);
+    float colorVariation = 765.00 / (coneSides);
     for (side = 0; side<coneSides; side++)
     {
         float currentColor = colorVariation * side;
@@ -85,14 +67,23 @@ void colorCone(vec4 * colors)
         float ColorB;
         if (currentColor >= 255)
         {
-            ColorR = 0;
-            ColorG = 255 - (currentColor-255);
-            ColorB = 0 + (currentColor-255);
+            if (currentColor >= 510)
+            {
+                ColorR = (0 + (currentColor-510))/255;
+                ColorG = 0;
+                ColorB = (255 - (currentColor-510))/255;
+            }
+            else
+            {
+                ColorR = 0;
+                ColorG = (255 - (currentColor-255))/255;
+                ColorB = (0 + (currentColor-255))/255;
+            }
         }
         else
         {
-            ColorR = 255 - currentColor;
-            ColorG = 0 + currentColor;
+            ColorR = (255 - currentColor)/255;
+            ColorG = (0 + currentColor)/255;
             ColorB = 0;
         }
         
