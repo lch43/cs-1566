@@ -9,6 +9,7 @@
 #include <GL/freeglut.h>
 #include <GL/freeglut_ext.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "../libraries/initShader.h"
 #include "../libraries/vandmlib.h"
@@ -16,7 +17,7 @@
 
 #define BUFFER_OFFSET( offset )   ((GLvoid*) (offset))
 
-vec4 vertices[6] =
+/*vec4 vertices[6] =
 {{ 0.0,  0.5,  0.0, 1.0},	// top
  {-0.5, -0.5,  0.0, 1.0},	// bottom left
  { 0.5, -0.5,  0.0, 1.0},	// bottom right
@@ -28,14 +29,94 @@ vec4 colors[6] =
 {{1.0, 0.0, 0.0, 1.0},	// red   (for top)
  {0.0, 1.0, 0.0, 1.0},	// green (for bottom left)
  {0.0, 0.0, 1.0, 1.0},	// blue  (for bottom right)
- {0.0, 1.0, 0.0, 1.0},	// blue  (for bottom right)
- {0.0, 1.0, 0.0, 1.0},	// blue  (for bottom right)
- {0.0, 1.0, 0.0, 1.0}};	// blue  (for bottom right)
+ {0.0, 1.0, 0.0, 1.0},	// green  (for bottom right)
+ {0.0, 1.0, 0.0, 1.0},	// green  (for bottom right)
+ {0.0, 1.0, 0.0, 1.0}};	// green  (for bottom right)*/
 
-int num_vertices = 6;
+/* For now we can keep this constant since we will not be changing it*/
+const int coneSides = 90;
+int num_vertices = coneSides * 2 * 3;
+
+/*
+    We are given the point of the cone's Y position. Assuming it will always stay in the middle of x and z.
+    We are given its height which will be the distance below the tipY that the cone will extend.
+    We are given the width which will be given as the radius of the base of the cone.
+    We are given the array of vertices to place the values into.
+*/
+void createCone(float tipY, float height, float width, vec4 * vertices)
+{
+    int vertex;
+    double angle = 360/coneSides;
+    float heightOffset = tipY - height;
+    for (vertex = 0; vertex<coneSides; vertex++)
+    {
+        int vertexOffset = vertex * 6;
+        float rad1 = (angle * vertex) * M_PI/180;
+        float rad2 = (angle * (vertex+1)) * M_PI/180;
+
+        float base1X = (float) (width * sin(rad1));
+        float base1Z = (float) (width * cos(rad1));
+        float base2X = (float) (width * sin(rad2));
+        float base2Z = (float) (width * cos(rad2));
+        printf("%f , %f \n", (angle * vertex), (angle * (vertex+1)));
+        
+        /*Vertical sides*/
+        vertices[vertexOffset] = (vec4) {0.0, tipY, 0.0 , 1.0};
+        vertices[vertexOffset+1] = (vec4) {base1X, heightOffset, base1Z, 1.0};
+        vertices[vertexOffset+2] = (vec4) {base2X, heightOffset, base2Z, 1.0};
+
+        /*Base sides*/
+        vertices[vertexOffset+3] = (vec4) {0.0, heightOffset, 0.0, 1.0};
+        vertices[vertexOffset+4] = (vec4) {base1X, heightOffset, base1Z, 1.0};
+        vertices[vertexOffset+5] = (vec4) {base2X, heightOffset, base2Z, 1.0};
+    }
+}
+
+void colorCone(vec4 * colors)
+{
+    int side;
+    float colorVariation = 510.00 / (coneSides-1);
+    printf("%f", colorVariation);
+    for (side = 0; side<coneSides; side++)
+    {
+        float currentColor = colorVariation * side;
+        float ColorR;
+        float ColorG;
+        float ColorB;
+        if (currentColor >= 255)
+        {
+            ColorR = 0;
+            ColorG = 255 - (currentColor-255);
+            ColorB = 0 + (currentColor-255);
+        }
+        else
+        {
+            ColorR = 255 - currentColor;
+            ColorG = 0 + currentColor;
+            ColorB = 0;
+        }
+        
+        int vertexOffset = side * 6;
+
+        /*Make vertical side colors*/
+        colors[vertexOffset] = (vec4) {ColorR,ColorG,ColorB,1.0};
+        colors[vertexOffset+1] = (vec4) {ColorR,ColorG,ColorB,1.0};
+        colors[vertexOffset+2] = (vec4) {ColorR,ColorG,ColorB,1.0};
+
+        /*Just set the bottom to white*/
+        colors[vertexOffset+3] = (vec4) {255,255,255,1.0};
+        colors[vertexOffset+4] = (vec4) {255,255,255,1.0};
+        colors[vertexOffset+5] = (vec4) {255,255,255,1.0};
+    }
+}
 
 void init(void)
 {
+    vec4 vertices[num_vertices];
+    createCone(0.5, 1, .5, vertices);
+    vec4 colors[num_vertices];
+    colorCone(colors);
+
     GLuint program = initShader("vshader.glsl", "fshader.glsl");
     glUseProgram(program);
 
@@ -93,7 +174,7 @@ int main(int argc, char **argv)
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(512, 512);
     glutInitWindowPosition(100,100);
-    glutCreateWindow("Template");
+    glutCreateWindow("Landon Higinbotham - Lab03 Cone");
     glewInit();
     init();
     glutDisplayFunc(display);
