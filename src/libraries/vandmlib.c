@@ -181,10 +181,10 @@ vec4 mat4_mult_v4(mat4 m, vec4 v)
 mat4 translate_mat4(float x, float y, float z)
 {
     return (mat4){
-        (vec4){1, 0, 0, x},
-        (vec4){0, 1, 0, y},
-        (vec4){0, 0, 1, z},
-        (vec4){0, 0, 0, 1}
+        (vec4){1, 0, 0, 0},
+        (vec4){0, 1, 0, 0},
+        (vec4){0, 0, 1, 0},
+        (vec4){x, y, z, 1}
     };
 }
 

@@ -64,8 +64,8 @@ void createCone(float tipY, float height, float width, vec4 * vertices)
 
         /*Base sides*/
         vertices[vertexOffset+3] = (vec4) {0.0, heightOffset, 0.0, 1.0};
-        vertices[vertexOffset+4] = (vec4) {base1X, heightOffset, base1Z, 1.0};
-        vertices[vertexOffset+5] = (vec4) {base2X, heightOffset, base2Z, 1.0};
+        vertices[vertexOffset+5] = (vec4) {base1X, heightOffset, base1Z, 1.0};
+        vertices[vertexOffset+4] = (vec4) {base2X, heightOffset, base2Z, 1.0};
         
     }
 }
@@ -140,30 +140,55 @@ void rainbowColorCone(vec4 * colors)
     }
 }
 
-//Inside idle is where different animations will execute.
-float increment = 0;
-int direction = 0;
+//Below are demo functions built to showcase different transformations.
+float scaleIncrement = 0;
+int scaleDirection = 0;
+mat4 scaleDemo()
+{
+    if (scaleIncrement >= 1){scaleDirection = 1;}
+    if (scaleIncrement <= 0.5){scaleDirection = 0.5;}
+    if (scaleDirection == 1){scaleIncrement -= 0.001;}
+    else{scaleIncrement += 0.001;}
+    return scale_mat4(scaleIncrement, scaleIncrement, scaleIncrement);
+}
 
+float translateIncrement = 0;
+int translateDirection = 0;
+mat4 translateDemo()
+{
+    if (translateIncrement >= 1){translateDirection = 1;}
+    if (translateIncrement <= -1){translateDirection = 0;}
+    if (translateDirection == 1){translateIncrement -= 0.001;}
+    else{translateIncrement += 0.001;}
+    return translate_mat4(translateIncrement, 0, 0);
+}
+
+float xIncrement = 0;
+mat4 rotateXDemo()
+{
+    xIncrement += 0.5;
+    return rotateX_mat4(xIncrement);
+}
+
+float yIncrement = 0;
+mat4 rotateYDemo()
+{
+    yIncrement += 0.5;
+    return rotateY_mat4(yIncrement);
+}
+
+float zIncrement = 0;
+mat4 rotateZDemo()
+{
+    zIncrement += 0.5;
+    return rotateZ_mat4(zIncrement);
+}
+
+//In this function we modify ctm using our transformation functions and redraw the display.
 void idle(void)
 {
-    if (increment >= 1)
-    {
-        direction = 1;
-    }
-    if (increment <= -1)
-    {
-        direction = 0;
-    }
-
-    if (direction == 1)
-    {
-        increment -= 0.001;
-    }
-    else
-    {
-        increment += 0.001;
-    }
-    ctm = translate_mat4(increment, 0, 0);
+    ctm = translateDemo();
+    ctm = mat4_mult_mat4(ctm, rotateYDemo());
     glutPostRedisplay();
 }
 
