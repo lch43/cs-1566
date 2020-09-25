@@ -1,3 +1,4 @@
+//Landon Higinbotham
 #include "vandmlib.h"
 #include <stdio.h>
 #include <math.h>
@@ -174,5 +175,57 @@ vec4 mat4_mult_v4(mat4 m, vec4 v)
         (m.x.y * v.x) + (m.y.y * v.y) + (m.z.y * v.z) + (m.w.y * v.w),
         (m.x.z * v.x) + (m.y.z * v.y) + (m.z.z * v.z) + (m.w.z * v.w),
         (m.x.w * v.x) + (m.y.w * v.y) + (m.z.w * v.z) + (m.w.w * v.w)
+    };
+}
+
+mat4 translate_mat4(float x, float y, float z)
+{
+    return (mat4){
+        (vec4){1, 0, 0, x},
+        (vec4){0, 1, 0, y},
+        (vec4){0, 0, 1, z},
+        (vec4){0, 0, 0, 1}
+    };
+}
+
+mat4 scale_mat4(float scaleX, float scaleY, float scaleZ)
+{
+    return (mat4){
+        (vec4){scaleX, 0, 0, 0},
+        (vec4){0, scaleY, 0, 0},
+        (vec4){0, 0, scaleZ, 0},
+        (vec4){0, 0, 0, 1}
+    };
+}
+mat4 rotateX_mat4(float degrees)
+{
+    double radians = (double) degrees*M_PI/180.00;
+    return (mat4){
+        (vec4){1, 0, 0, 0},
+        (vec4){0, (float) cos(radians), (float) -1 * sin(radians), 0},
+        (vec4){0, (float) sin(radians), (float) cos(radians), 0},
+        (vec4){0, 0, 0, 1}
+    };
+}
+
+mat4 rotateY_mat4(float degrees)
+{
+    double radians = (double) degrees*M_PI/180.00;
+    return (mat4){
+        (vec4){(float) cos(radians), 0, (float) sin(radians), 0},
+        (vec4){0, 1, 0, 0},
+        (vec4){(float) -1 * sin(radians), 0, (float) cos(radians), 0},
+        (vec4){0, 0, 0, 1}
+    };
+}
+
+mat4 rotateZ_mat4(float degrees)
+{
+    double radians = (double) degrees*M_PI/180.00;
+    return (mat4){
+        (vec4){(float) cos(radians), (float) -1 * sin(radians), 0, 0},
+        (vec4){(float) sin(radians), (float) cos(radians), 0, 0},
+        (vec4){0, 0, 1, 0},
+        (vec4){0, 0, 0, 1}
     };
 }

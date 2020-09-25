@@ -1,3 +1,4 @@
+//Landon Higinbotham
 #ifndef _VANDMLIB_H_
 #define _VANDMLIB_H_
 
@@ -54,6 +55,16 @@ mat4 inv_mat4(mat4 m);
 mat4 trans_mat4(mat4 m);
 
 vec4 mat4_mult_v4(mat4 m, vec4 v);
+
+mat4 translate_mat4(float x, float y, float z);
+
+mat4 scale_mat4(float scaleX, float scaleY, float scaleZ);
+
+mat4 rotateX_mat4(float degrees);
+
+mat4 rotateY_mat4(float degrees);
+
+mat4 rotateZ_mat4(float degrees);
 
 /*Helper functions that I would like to have just in case
 
