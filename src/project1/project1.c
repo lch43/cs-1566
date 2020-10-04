@@ -27,6 +27,9 @@ const int numCylinders = 60;
 const int numSidesPerCylinder = 10;
 int num_vertices = (numCylinders * 2 + 2) * numSidesPerCylinder * 3;
 
+const int windowX = 512;
+const int windowY = 512;
+
 GLuint ctm_location;
 mat4 ctm = {
     (vec4) {1,0,0,0},
@@ -133,6 +136,8 @@ void color(vec4 * colors)
 
 int mouseDown = 0;
 
+vec4 prevPoint = (vec4){0,0,0,0};
+
 void mouse(int button, int state, int x, int y)
 {
     if (button == 3)
@@ -145,13 +150,27 @@ void mouse(int button, int state, int x, int y)
     }
     else if (button == GLUT_LEFT_BUTTON)
     {
-        if (state == GLUT_UP)
+        if (state == GLUT_UP) //Let go of mouse left click
         {
             mouseDown = 0;
+            prevPoint = (vec4){-1,-1,-1,-1}; //Reset the current mouse point to a nil point
         }
-        else if (state == GLUT_DOWN)
+        else if (state == GLUT_DOWN) //Mouse left clicked
         {
             mouseDown = 1;
+            float vecX = -1.0 + (x* 2.0/(windowX-1)); //Determine the X in the range of our view
+            float vecY = -1.0 + (y* 2.0/(windowY-1)); //Determine the X in the range of our view
+            float vecZSquared = 1-vecX*vecX-vecY*vecY;
+            float radCheck = vecZSquared + vecX*vecX + vecY*vecY;
+            if (vecX >= -1 && vecX <= 1 && vecY >= -1 && vecY <= 1 && vecZSquared >= 0 && radCheck >= .999998 && radCheck <= 1.000002 )
+            {
+                prevPoint = (vec4){vecX, vecY, sqrt(vecZSquared)};
+            }
+            else
+            {
+                prevPoint = (vec4){-1,-1,-1,-1};
+            }
+            
         }
     }
 
@@ -160,9 +179,33 @@ void mouse(int button, int state, int x, int y)
 
 void motion(int x, int y)
 {
+    //If we are holding down left click
     if (mouseDown == 1)
     {
-        printf("x: %d , y:%d\n", x, y);
+        //Get current point of mouse
+        float vecX = -1.0 + (x* 2.0/(windowX-1)); //Determine the X in the range of our view
+        float vecY = -1.0 + (y* 2.0/(windowY-1)); //Determine the X in the range of our view
+        float vecZSquared = 1-vecX*vecX-vecY*vecY;
+        float radCheck = vecZSquared + vecX*vecX + vecY*vecY;
+        vec4 currentPoint;
+        if (vecX >= -1 && vecX <= 1 && vecY >= -1 && vecY <= 1 && vecZSquared >= 0 && radCheck >= .999998 && radCheck <= 1.000002 )
+        {
+            currentPoint = (vec4){vecX, vecY, sqrt(vecZSquared)};
+        }
+        else //If this point is out of the range of our circle
+        {
+            currentPoint = (vec4){-1,-1,-1,-1};
+        }
+
+        if (prevPoint.x == -1 || currentPoint.x == -1) //Check to see if we can't make movement (our finger slipped off the ball)
+        {
+            prevPoint = currentPoint;
+        }
+        else //If we can make movement then lets do it.
+        {
+            
+        }
+        
     }
 }
 
@@ -237,14 +280,14 @@ void keyboard(unsigned char key, int mousex, int mousey)
 
 void reshape(int width, int height)
 {
-    glViewport(0, 0, 512, 512);
+    glViewport(0, 0, windowX, windowY);
 }
 
 int main(int argc, char **argv)
 {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
-    glutInitWindowSize(512, 512);
+    glutInitWindowSize(windowX, windowY);
     glutInitWindowPosition(100,100);
     glutCreateWindow("Landon Higinbotham - Lab04");
     glewInit();
