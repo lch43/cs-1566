@@ -23,9 +23,9 @@
 const int coneSides = 100;
 /*Vertices = number of vertical sides of the cone * 2 since we must create the bottom faces, and * 3 because each triangle has 3 vertices.*/
 
-const int numCylinders = 60;
-const int numSidesPerCylinder = 10;
-int num_vertices = (numCylinders * 2 + 2) * numSidesPerCylinder * 3;
+const int numCylinders = 60; //How many cylinders the spring is made out of
+const int numSidesPerCylinder = 10; //How many sides each cylinder has
+int num_vertices = (numCylinders * 2 + 2) * numSidesPerCylinder * 3; //How many vertices the object is made out of.
 
 const int windowX = 512;
 const int windowY = 512;
@@ -40,15 +40,15 @@ mat4 ctm = {
 
 void createSpring(vec4 * vertices)
 {
-    const float cylinderRadius = .05;
-    const float height = .5;
-    const float width = .5;
-    const float degreesOfRotation = 1080;
+    const float cylinderRadius = .05; //How thick the cylinder is
+    const float height = .5; //How high and low the spring is on the Y axis
+    const float width = .5; //Extend on negative and positive of x and z axis the spring encompasses.
+    const float degreesOfRotation = 1080; //How much the spring rotates throughout its height.
 
     double degreesToRadians = M_PI/180.00;
 
     int triangle;
-    for (triangle = 0; triangle<numSidesPerCylinder*3; triangle+= 3)
+    for (triangle = 0; triangle<numSidesPerCylinder*3; triangle+= 3) //Create the top end cap of the spring
     {
         double rad1 = triangle * 360/numSidesPerCylinder * degreesToRadians;
         double rad2 = (triangle + 1) * 360/numSidesPerCylinder * degreesToRadians;
@@ -64,7 +64,7 @@ void createSpring(vec4 * vertices)
     }
 
     int cylinder;
-    for (cylinder = 0; cylinder<numCylinders; cylinder++)
+    for (cylinder = 0; cylinder<numCylinders; cylinder++) //Create the spring cylinders (the 3D part of the spring)
     {
         /*
         Plan is to interpolate the rotation and height values. Then create the cylinders and transform the location
@@ -96,7 +96,7 @@ void createSpring(vec4 * vertices)
         }
     }
 
-    for (triangle = num_vertices-numSidesPerCylinder*3; triangle<num_vertices; triangle+= 3)
+    for (triangle = num_vertices-numSidesPerCylinder*3; triangle<num_vertices; triangle+= 3) //Create the bottom end cap.
     {
         double rad1 = triangle * 360/numSidesPerCylinder * degreesToRadians;
         double rad2 = (triangle + 1) * 360/numSidesPerCylinder * degreesToRadians;
@@ -112,7 +112,7 @@ void createSpring(vec4 * vertices)
     }
 }
 
-void color(vec4 * colors)
+void color(vec4 * colors) //Color vertices random colors in groups of three.
 {
     int side;
     for (side = 0; side<num_vertices; side+= 3)
@@ -133,17 +133,17 @@ int mouseDown = 0;
 
 vec4 prevPoint = (vec4){0,0,0,0};
 
-void mouse(int button, int state, int x, int y)
+void mouse(int button, int state, int x, int y) //Retrieve commands from the mouse
 {
-    if (button == 3)
+    if (button == 3) //Scroll up Zoom in
     {
         ctm = mat4_mult_mat4(scale_mat4(1.02, 1.02, 1.02), ctm);
     }
-    else if (button == 4)
+    else if (button == 4) //Scroll down Zoom out
     {
         ctm = mat4_mult_mat4(scale_mat4(1/1.02, 1/1.02, 1/1.02), ctm);
     }
-    else if (button == GLUT_LEFT_BUTTON)
+    else if (button == GLUT_LEFT_BUTTON) //Left button action
     {
         if (state == GLUT_UP) //Let go of mouse left click
         {
@@ -157,6 +157,8 @@ void mouse(int button, int state, int x, int y)
             float vecY = 1.0 - (y* 2.0/(windowY-1)); //Determine the X in the range of our view
             float vecZSquared = 1-vecX*vecX-vecY*vecY;
             float radCheck = vecZSquared + vecX*vecX + vecY*vecY;
+
+            //Check to see if mouse position is within boundaries.
             if (vecX >= -1 && vecX <= 1 && vecY >= -1 && vecY <= 1 && vecZSquared >= 0 && radCheck >= .999998 && radCheck <= 1.000002 )
             {
                 prevPoint = (vec4){vecX, vecY, sqrt(vecZSquared), 1.0};
@@ -180,8 +182,8 @@ void motion(int x, int y)
         //Get current point of mouse
         float vecX = -1.0 + (x* 2.0/(windowX-1)); //Determine the X in the range of our view
         float vecY = 1.0 - (y* 2.0/(windowY-1)); //Determine the X in the range of our view
-        float vecZSquared = 1-vecX*vecX-vecY*vecY;
-        float radCheck = vecZSquared + vecX*vecX + vecY*vecY;
+        float vecZSquared = 1-vecX*vecX-vecY*vecY; //Using equation of a sphere find Z squared.
+        float radCheck = vecZSquared + vecX*vecX + vecY*vecY; //Sanity check
         vec4 currentPoint;
         if (vecX >= -1 && vecX <= 1 && vecY >= -1 && vecY <= 1 && vecZSquared >= 0 && radCheck >= .999998 && radCheck <= 1.000002 )
         {
@@ -198,9 +200,6 @@ void motion(int x, int y)
         }
         else //If we can make movement then lets do it.
         {
-            /* When I get to it, rotate X using arb then transpose that same thing to rotate back */
-            /* When I get to it, rotate Y using transpose arb then the un transposed fo that same thing to rotate back */
-            /* When I get to it, CTM gets multiplied last.*/
 
             //Get the vector
             vec4 u = (vec4){prevPoint.x, prevPoint.y, prevPoint.z, 0.0};
@@ -212,11 +211,16 @@ void motion(int x, int y)
 
             float d = sqrt(arbVector.z*arbVector.z + arbVector.y*arbVector.y);
 
-            rotation = rotateX_mat4_arb(arbVector.y, arbVector.z, d); //Rotate X
-            rotation = mat4_mult_mat4(trans_mat4(rotateY_mat4_arb(arbVector.x, d)), rotation); //Rotate Y
-            rotation = mat4_mult_mat4(rotateZ_mat4(1), rotation);
-            rotation = mat4_mult_mat4(rotateY_mat4_arb(arbVector.x, d), rotation); //Reverse X
-            rotation = mat4_mult_mat4(trans_mat4(rotateX_mat4_arb(arbVector.y, arbVector.z, d)), rotation); //Reverse Y
+            //Align with X-Z plane
+            rotation = rotateX_mat4_arb(-1*arbVector.y, arbVector.z, d); //Rotate X
+            //Align wih Z axis
+            rotation = mat4_mult_mat4(trans_mat4(rotateY_mat4_arb(-1*arbVector.x, d)), rotation); //Rotate Y
+            //Rotate Z
+            rotation = mat4_mult_mat4(rotateZ_mat4(-1), rotation);
+            //Reverse Y 
+            rotation = mat4_mult_mat4(rotateY_mat4_arb(-1*arbVector.x, d), rotation); //Reverse Y
+            //Reverse X
+            rotation = mat4_mult_mat4(trans_mat4(rotateX_mat4_arb(-1*arbVector.y, arbVector.z, d)), rotation); //Reverse X
             ctm = mat4_mult_mat4(rotation, ctm);
 
             prevPoint = currentPoint;
@@ -306,7 +310,7 @@ int main(int argc, char **argv)
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(windowX, windowY);
     glutInitWindowPosition(100,100);
-    glutCreateWindow("Landon Higinbotham - Lab04");
+    glutCreateWindow("Landon Higinbotham - Project1");
     glewInit();
     init();
     glutDisplayFunc(display);
