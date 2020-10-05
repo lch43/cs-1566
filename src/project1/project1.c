@@ -63,8 +63,6 @@ void createSpring(vec4 * vertices)
         vertices[triangle+2] = (vec4) {width + rad2X, height + rad2Y, 0.0, 1.0};
     }
 
-    printf("%d\n", triangle);
-
     int cylinder;
     for (cylinder = 0; cylinder<numCylinders; cylinder++)
     {
@@ -88,8 +86,6 @@ void createSpring(vec4 * vertices)
             float rad2X = cylinderRadius * cos(rad2);
             float rad2Y = cylinderRadius * sin(rad2);
 
-            printf("%d\n", triangle+(cylinder * numSidesPerCylinder*6)+(side*6));
-
             vertices[triangle+(cylinder * numSidesPerCylinder*6)+(side*6)] = (vec4) {(width+rad1X)*cos(rotationRadians), height1+rad1Y, (width+rad1X)*sin(rotationRadians), 1.0}; //rad1 front
             vertices[triangle+(cylinder * numSidesPerCylinder*6)+(side*6)+1] = (vec4) {(width+rad1X)*cos(rotationRadians2), height2+rad1Y, (width+rad1X)*sin(rotationRadians2), 1.0}; //rad1 back
             vertices[triangle+(cylinder * numSidesPerCylinder*6)+(side*6)+2] = (vec4) {(width+rad2X)*cos(rotationRadians2), height2+rad2Y, (width+rad2X)*sin(rotationRadians2), 1.0}; //rad2 back
@@ -100,7 +96,6 @@ void createSpring(vec4 * vertices)
         }
     }
 
-    printf("%d\n", num_vertices-numSidesPerCylinder*3);
     for (triangle = num_vertices-numSidesPerCylinder*3; triangle<num_vertices; triangle+= 3)
     {
         double rad1 = triangle * 360/numSidesPerCylinder * degreesToRadians;
@@ -159,12 +154,12 @@ void mouse(int button, int state, int x, int y)
         {
             mouseDown = 1;
             float vecX = -1.0 + (x* 2.0/(windowX-1)); //Determine the X in the range of our view
-            float vecY = -1.0 + (y* 2.0/(windowY-1)); //Determine the X in the range of our view
+            float vecY = 1.0 - (y* 2.0/(windowY-1)); //Determine the X in the range of our view
             float vecZSquared = 1-vecX*vecX-vecY*vecY;
             float radCheck = vecZSquared + vecX*vecX + vecY*vecY;
             if (vecX >= -1 && vecX <= 1 && vecY >= -1 && vecY <= 1 && vecZSquared >= 0 && radCheck >= .999998 && radCheck <= 1.000002 )
             {
-                prevPoint = (vec4){vecX, vecY, sqrt(vecZSquared)};
+                prevPoint = (vec4){vecX, vecY, sqrt(vecZSquared), 1.0};
             }
             else
             {
@@ -184,13 +179,13 @@ void motion(int x, int y)
     {
         //Get current point of mouse
         float vecX = -1.0 + (x* 2.0/(windowX-1)); //Determine the X in the range of our view
-        float vecY = -1.0 + (y* 2.0/(windowY-1)); //Determine the X in the range of our view
+        float vecY = 1.0 - (y* 2.0/(windowY-1)); //Determine the X in the range of our view
         float vecZSquared = 1-vecX*vecX-vecY*vecY;
         float radCheck = vecZSquared + vecX*vecX + vecY*vecY;
         vec4 currentPoint;
         if (vecX >= -1 && vecX <= 1 && vecY >= -1 && vecY <= 1 && vecZSquared >= 0 && radCheck >= .999998 && radCheck <= 1.000002 )
         {
-            currentPoint = (vec4){vecX, vecY, sqrt(vecZSquared)};
+            currentPoint = (vec4){vecX, vecY, sqrt(vecZSquared), 1.0};
         }
         else //If this point is out of the range of our circle
         {
@@ -203,7 +198,29 @@ void motion(int x, int y)
         }
         else //If we can make movement then lets do it.
         {
-            
+            /* When I get to it, rotate X using arb then transpose that same thing to rotate back */
+            /* When I get to it, rotate Y using transpose arb then the un transposed fo that same thing to rotate back */
+            /* When I get to it, CTM gets multiplied last.*/
+
+            //Get the vector
+            vec4 u = (vec4){prevPoint.x, prevPoint.y, prevPoint.z, 0.0};
+            vec4 v = (vec4){currentPoint.x, currentPoint.y, currentPoint.z, 0.0};
+            vec4 arbVector = cross_prod_v4(u, v);
+            arbVector = normalize_v4(arbVector);
+
+            mat4 rotation;
+
+            float d = sqrt(arbVector.z*arbVector.z + arbVector.y*arbVector.y);
+
+            rotation = rotateX_mat4_arb(arbVector.y, arbVector.z, d); //Rotate X
+            rotation = mat4_mult_mat4(trans_mat4(rotateY_mat4_arb(arbVector.x, d)), rotation); //Rotate Y
+            rotation = mat4_mult_mat4(rotateZ_mat4(1), rotation);
+            rotation = mat4_mult_mat4(rotateY_mat4_arb(arbVector.x, d), rotation); //Reverse X
+            rotation = mat4_mult_mat4(trans_mat4(rotateX_mat4_arb(arbVector.y, arbVector.z, d)), rotation); //Reverse Y
+            ctm = mat4_mult_mat4(rotation, ctm);
+
+            prevPoint = currentPoint;
+            glutPostRedisplay();
         }
         
     }

@@ -52,7 +52,7 @@ mat4 mat4_mult_mat4(mat4 a, mat4 b);
 
 mat4 inv_mat4(mat4 m);
 
-mat4 trans_mat4(mat4 m);
+mat4 trans_mat4(mat4 m);  //Transpose
 
 vec4 mat4_mult_v4(mat4 m, vec4 v);
 
@@ -62,7 +62,11 @@ mat4 scale_mat4(float scaleX, float scaleY, float scaleZ);
 
 mat4 rotateX_mat4(float degrees);
 
+mat4 rotateX_mat4_arb(float ay, float az, float d);
+
 mat4 rotateY_mat4(float degrees);
+
+mat4 rotateY_mat4_arb(float ax, float d);
 
 mat4 rotateZ_mat4(float degrees);
 

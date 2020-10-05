@@ -158,7 +158,7 @@ mat4 inv_mat4(mat4 m)
     return scalar_mult_mat4(1/determ_mat4(m), trans_mat4(cofact_mat4(minor_mat4(m))));
 };
 
-mat4 trans_mat4(mat4 m)
+mat4 trans_mat4(mat4 m) //Transpose
 {
     return (mat4){
         (vec4){m.x.x, m.y.x, m.z.x, m.w.x},
@@ -208,6 +208,16 @@ mat4 rotateX_mat4(float degrees)
     };
 }
 
+mat4 rotateX_mat4_arb(float ay, float az, float d)
+{
+    return (mat4){
+        (vec4){1, 0, 0, 0},
+        (vec4){0, az/d, -1 * ay/d, 0},
+        (vec4){0, ay/d, az/d, 0},
+        (vec4){0, 0, 0, 1}
+    };
+}
+
 mat4 rotateY_mat4(float degrees)
 {
     double radians = (double) degrees*M_PI/180.00;
@@ -215,6 +225,16 @@ mat4 rotateY_mat4(float degrees)
         (vec4){(float) cos(radians), 0, (float) sin(radians), 0},
         (vec4){0, 1, 0, 0},
         (vec4){(float) -1 * sin(radians), 0, (float) cos(radians), 0},
+        (vec4){0, 0, 0, 1}
+    };
+}
+
+mat4 rotateY_mat4_arb(float ax, float d)
+{
+    return (mat4){
+        (vec4){d, 0, ax, 0},
+        (vec4){0, 1, 0, 0},
+        (vec4){-1 * ax, 0, d, 0},
         (vec4){0, 0, 0, 1}
     };
 }
