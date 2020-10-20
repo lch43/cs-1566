@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
 typedef struct
 {
     int n;
@@ -7,10 +11,62 @@ typedef struct
     int visited;
 } mazeBlock;
 
-const mazeRows = 8;
-const mazeCols = 8;
+const int mazeRows = 8;
+const int mazeCols = 8;
 
-mazeBlock maze[mazeRows][mazeCols];
+mazeBlock maze[8][8];
+
+void printMaze()
+{
+    int i;
+    int j;
+    for (int j = 0; j<mazeCols; j++)
+    {
+        //printf("(%d %d %d %d) ", maze[i][j].n, maze[i][j].e, maze[i][j].s, maze[i][j].w);
+        if (maze[0][j].n == 0)
+        {
+            printf("._");
+        }
+        else
+        {
+            printf("  ");
+        }
+    }
+    printf("\n");
+    for (int i = 0; i<mazeRows; i++)
+    {
+        for (int j = 0; j<mazeCols; j++)
+        {
+            //printf("(%d %d %d %d) ", maze[i][j].n, maze[i][j].e, maze[i][j].s, maze[i][j].w);
+            if (maze[i][j].w == 0)
+            {
+                printf("|");
+            }
+            else
+            {
+                printf(" ");
+            }
+            if (maze[i][j].s == 0)
+            {
+                printf("_");
+            }
+            else
+            {
+                printf(" ");
+            }
+            
+        }
+        printf("|\n");
+    }
+    /*for (int i = 0; i<mazeRows; i++)
+    {
+        for (int j = 0; j<mazeCols; j++)
+        {
+            printf("(%d %d %d %d) ", maze[i][j].n, maze[i][j].e, maze[i][j].s, maze[i][j].w);
+        }
+        printf("\n");
+    }*/
+}
 
 void recursiveMazeBuilder(int row, int col)
 {
@@ -21,7 +77,7 @@ void recursiveMazeBuilder(int row, int col)
     {
         int randomInt = rand() % (4-i);
         int choice = directions[randomInt];
-
+        printMaze();
         if (choice == 0 && maze[row][col].n == 0 && row != 0 && maze[row-1][col].visited == 0) //Go up
         {
             maze[row][col].n = 1;
@@ -64,8 +120,12 @@ int main()
     srand(time(NULL)); //Set the seed using time
     int startCol = rand() % 8;
     maze[0][startCol].n = 1;
-
+    maze[0][startCol].visited = 1;
     recursiveMazeBuilder(0, startCol);
+    startCol = rand() % 8;
+    maze[7][startCol].s = 1;
+
+    printMaze();
     //Solve Maze Backtracking
 
     //Solve using best path
