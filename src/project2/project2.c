@@ -27,14 +27,16 @@ typedef struct
     int visited;
 } mazeBlock;
 
+#define mazeRows 8
+#define mazeCols 8
+
 typedef struct
 {
     int walls;
     int poles;
+    int wallArray[2* mazeCols* mazeRows+ mazeCols + mazeRows];
+    int poleArray[(mazeCols+1)*(mazeRows+1)];
 } mazeInfoBlock;
-
-const int mazeRows = 8;
-const int mazeCols = 8;
 
 mazeBlock maze[8][8];
 int solution[64];
@@ -53,7 +55,6 @@ void recursiveMazeBuilder(int row, int col)
     {
         int randomInt = rand() % (4-i);
         int choice = directions[randomInt];
-        printMaze();
         if (choice == 0 && maze[row][col].n == 0 && row != 0 && maze[row-1][col].visited == 0) //Go up
         {
             maze[row][col].n = 1;
@@ -92,7 +93,7 @@ void recursiveMazeBuilder(int row, int col)
 
 int solveMazeCWRF(int row, int col, int solutionRow, int solutionCol, int index) //Solve clockwise right first.
 {
-    printf("[ %d , %d ] \n", row, col);
+    //printf("[ %d , %d ] \n", row, col);
     solution[index] = row * 8 + col;
     maze[row][col].visited = 0;
     int foundEnd = 0;
@@ -129,8 +130,6 @@ mazeInfoBlock getMazeInfo()
 {
     mazeInfoBlock block = {0,0};
 
-    int walls[2* mazeCols* mazeRows+ mazeCols + mazeRows];
-
     int i=0;
     int j=0;
     for (i=0; i<mazeRows; i++)
@@ -139,27 +138,46 @@ mazeInfoBlock getMazeInfo()
         {
             if (maze[i][j].n == 0)
             {
-                walls[i*mazeCols+j] = 1;
+                block.wallArray[i*mazeCols+j] = 1;
+
+                block.poleArray[(mazeCols+1)*i + (j*2-j)] = 1;
+                block.poleArray[(mazeCols+1)*i + (j*2-j)+1] = 1;
             }
             if (maze[i][j].s == 0)
             {
-                walls[(i+1)*mazeCols+j] = 1;
+                block.wallArray[(i+1)*mazeCols+j] = 1;
+
+                block.poleArray[(mazeCols+1)*(i+1) + (j*2-j)] = 1;
+                block.poleArray[(mazeCols+1)*(i+1) + (j*2-j)+1] = 1;
             }
             if (maze[i][j].e == 0)
             {
-                walls[(mazeRows+1)*mazeCols+ (j*2-j)+(mazeCols+1)*i] = 1;
+                block.wallArray[(mazeRows+1)*mazeCols+ (j*2-j)+(mazeCols+1)*i+1] = 1;
+
+                block.poleArray[(mazeCols+1)*i + (j*2-j)+1] = 1;
+                block.poleArray[(mazeCols+1)*(i+1) + (j*2-j)+1] = 1;
             }
             if (maze[i][j].w == 0)
             {
-                walls[(mazeRows+1)*mazeCols+ (j*2-j)+(mazeCols+1)*i+1] = 1;
+                block.wallArray[(mazeRows+1)*mazeCols+ (j*2-j)+(mazeCols+1)*i] = 1;
+
+                block.poleArray[(mazeCols+1)*i + (j*2-j)] = 1;
+                block.poleArray[(mazeCols+1)*(i+1) + (j*2-j)] = 1;
             }
         }
     } 
     for (i = 0; i<(2* mazeCols* mazeRows+ mazeCols + mazeRows); i++)
     {
-        if (walls[i] == 1)
+        if (block.wallArray[i] == 1)
         {
             block.walls++;
+        }
+    }
+    for (i = 0; i<((mazeCols+1)*(mazeRows+1)); i++)
+    {
+        if (block.poleArray[i] == 1)
+        {
+            block.poles++;
         }
     }
 
@@ -168,27 +186,7 @@ mazeInfoBlock getMazeInfo()
 
 //Landon Higinbotham's code ends
 
-// Vertices of a square
-
-vec4 vertices[6] =
-{{-0.5, -0.5,  0.0, 1.0},	// bottom left
- { 0.5, -0.5,  0.0, 1.0},	// bottom right
- { 0.5,  0.5,  0.0, 1.0},	// top right
- {-0.5, -0.5,  0.0, 1.0},	// bottom left
- { 0.5,  0.5,  0.0, 1.0},	// top right
- {-0.5,  0.5,  0.0, 1.0}};	// top left
-
-// Colors (not really use this but send it into the pipeline anyway)
-
-vec4 colors[6] =
-{{1.0, 0.0, 0.0, 1.0},  // red
- {1.0, 0.0, 0.0, 1.0},  // red
- {1.0, 0.0, 0.0, 1.0},  // red
- {0.0, 1.0, 0.0, 1.0},  // green
- {0.0, 1.0, 0.0, 1.0},  // green
- {0.0, 1.0, 0.0, 1.0}}; // green
-
-int num_vertices = 6;
+int num_vertices = 0;
 
 vec2 tex_coords[6] = {{0.0, 1.0}, {1.0, 1.0}, {1.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}, {0.0, 0.0}};
 
@@ -201,17 +199,73 @@ void init(void)
     maze[0][0].visited = 1; //Set the start block to be visited (this is to stop multiple paths from being created)
     recursiveMazeBuilder(0, 0); //Recursively build the maze
     maze[mazeRows-1][mazeCols-1].e = 1; //Open the end gate
-    mazeInfoBlock ifo = getMazeInfo();// Returns info we will use in determining vertices for maze
+    mazeInfoBlock info = getMazeInfo();// Returns info we will use in generating the maze
+
+    num_vertices = 6 + info.walls*6*6 + info.poles*6*6;
+
+    vec4 vertices[num_vertices];
+    vec4 colors[num_vertices];
+
+    //Ground (flat-plane) Notes are from top view
+    float yOffset = -0.5;
+    vertices[0] = (vec4){-1.0,yOffset,-1.0,1.0}; //Top left
+    vertices[1] = (vec4){1.0,yOffset,-1.0,1.0}; //Top right
+    vertices[2] = (vec4){-1.0,yOffset,1.0,1.0}; //Bottom left
+
+    vertices[3] = (vec4){-1.0,yOffset,1.0,1.0}; //Bottom left
+    vertices[4] = (vec4){1.0,yOffset,-1.0,1.0}; //Top Right
+    vertices[5] = (vec4){1.0,yOffset,1.0,1.0}; //Bottom right
+
+
+    int vertOffset = 6;//Offsets the array index by the amount we already used
+
+    //Maze will be given a .1 inset from all sides of the plane.
+    float inset = 0.1;
+    float cellSideSize = (2 - inset*2) / mazeCols; 
+    float wallThick = cellSideSize * .1;
+    float wallHeight = .5;
+    float startPoint = -1+inset;
+    int i=0;
+    for (i=0;i<2* mazeCols* mazeRows+ mazeCols + mazeRows;i++)
+    {
+        if (i<(mazeRows+1)*mazeCols) //Wall is horizontal
+        {
+            if (info.wallArray[i] == 1)
+            {
+                int wallCol = i%mazeCols;
+                int wallRow = (i-wallCol)/(mazeCols);
+                
+                vec4 topBackLeft = (vec4){startPoint+wallCol*cellSideSize,yOffset+wallHeight,(startPoint+wallRow*cellSideSize)-.5*wallThick,1.0};
+                vec4 topBackRight = (vec4){startPoint+(wallCol+1)*cellSideSize,yOffset+wallHeight,(startPoint+wallRow*cellSideSize)-.5*wallThick,1.0};
+                vec4 topFrontLeft = (vec4){startPoint+wallCol*cellSideSize,yOffset+wallHeight,(startPoint+wallRow*cellSideSize)+.5*wallThick,1.0};
+                vec4 topFrontRight = (vec4){startPoint+(wallCol+1)*cellSideSize,yOffset+wallHeight,(startPoint+wallRow*cellSideSize)+.5*wallThick,1.0};
+                
+                vec4 bottomBackLeft = (vec4){startPoint+wallCol*cellSideSize,yOffset,(startPoint+wallRow*cellSideSize)-.5*wallThick,1.0};
+                vec4 bottomBackRight = (vec4){startPoint+(wallCol+1)*cellSideSize,yOffset,(startPoint+wallRow*cellSideSize)-.5*wallThick,1.0};
+                vec4 bottomFrontLeft = (vec4){startPoint+wallCol*cellSideSize,yOffset,(startPoint+wallRow*cellSideSize)+.5*wallThick,1.0};
+                vec4 bottomFrontRight = (vec4){startPoint+(wallCol+1)*cellSideSize,yOffset,(startPoint+wallRow*cellSideSize)+.5*wallThick,1.0};
+                
+            }
+        }
+        else //Wall is vertical
+        {
+            if (info.wallArray[i] == 1)
+            {
+                int wallCol = (i-((mazeRows+1)*mazeCols))%(mazeCols+1);
+                int wallRow = ((i-((mazeRows+1)*mazeCols))-wallCol)/(mazeCols+1);
+            }
+        }
+    }
 
     //Solve maze
     solveMazeCWRF(0,0, mazeRows-1, mazeCols-1, 0); //This will recursively solve the maze. It checks in order of E-S-W-N
     //Landon Higinbotham's code ends
 
-    int width = 512;
-    int height = 512;
+    int width = 800;
+    int height = 800;
     GLubyte my_texels[width][height][3];
 
-    FILE *fp = fopen("texture01.raw", "r");
+    FILE *fp = fopen("p2texture04.raw", "r");
     fread(my_texels, width * height * 3, 1, fp);
     fclose(fp);
 
