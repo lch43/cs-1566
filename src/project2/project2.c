@@ -38,6 +38,28 @@ typedef struct
     int poleArray[(mazeCols+1)*(mazeRows+1)];
 } mazeInfoBlock;
 
+typedef struct
+{
+    float inset;
+    float cellSideSize; 
+    float wallThick;
+    float wallHeight;
+    float startPoint;
+} mazeSettings;
+
+typedef struct
+{
+    vec4 topBackLeft;
+    vec4 topBackRight;
+    vec4 topFrontLeft;
+    vec4 topFrontRight;
+
+    vec4 bottomBackLeft;
+    vec4 bottomBackRight;
+    vec4 bottomFrontLeft;
+    vec4 bottomFrontRight;
+} cube;
+
 mazeBlock maze[8][8];
 int solution[64];
 
@@ -184,28 +206,145 @@ mazeInfoBlock getMazeInfo()
     return block;
 }
 
-void createWalls(vec4 * vertices, vec2 * tex_coords, mazeInfoBlock info, int vertOffset, int yOffset)
+void createBox(vec4 * vertices, cube cube, int offset)
+{
+    vec4 topBackLeft = cube.topBackLeft;
+    vec4 topBackRight = cube.topBackRight;
+    vec4 topFrontLeft = cube.topFrontLeft;
+    vec4 topFrontRight = cube.topFrontRight;
+
+    vec4 bottomBackLeft = cube.bottomBackLeft;
+    vec4 bottomBackRight = cube.bottomBackRight;
+    vec4 bottomFrontLeft = cube.bottomFrontLeft;
+    vec4 bottomFrontRight = cube.bottomFrontRight;
+
+    //Front face
+    vertices[offset+0] = topFrontRight;
+    vertices[offset+1] = topFrontLeft;
+    vertices[offset+2] = bottomFrontLeft;
+
+    vertices[offset+3] = topFrontRight;
+    vertices[offset+4] = bottomFrontLeft;
+    vertices[offset+5] = bottomFrontRight;
+
+    //Back face
+    vertices[offset+6] = topBackLeft;
+    vertices[offset+7] = topBackRight;
+    vertices[offset+8] = bottomBackRight;
+
+    vertices[offset+9] = topBackLeft;
+    vertices[offset+10] = bottomBackRight;
+    vertices[offset+11] = bottomBackLeft;
+
+    //Left face
+    vertices[offset+12] = topFrontLeft;
+    vertices[offset+13] = topBackLeft;
+    vertices[offset+14] = bottomBackLeft;
+
+    vertices[offset+15] = topFrontLeft;
+    vertices[offset+16] = bottomBackLeft;
+    vertices[offset+17] = bottomFrontLeft;
+
+    //Right face
+    vertices[offset+18] = topBackRight;
+    vertices[offset+19] = topFrontRight;
+    vertices[offset+20] = bottomFrontRight;
+
+    vertices[offset+21] = topBackRight;
+    vertices[offset+22] = bottomFrontRight;
+    vertices[offset+23] = bottomBackRight;
+
+    //Top face
+    vertices[offset+24] = topBackRight;
+    vertices[offset+25] = topBackLeft;
+    vertices[offset+26] = topFrontLeft;
+
+    vertices[offset+27] = topBackRight;
+    vertices[offset+28] = topFrontLeft;
+    vertices[offset+29] = topFrontRight;
+
+    //Bottom face
+    vertices[offset+30] = bottomFrontRight;
+    vertices[offset+31] = bottomFrontLeft;
+    vertices[offset+32] = bottomBackLeft;
+
+    vertices[offset+33] = bottomFrontRight;
+    vertices[offset+34] = bottomBackLeft;
+    vertices[offset+35] = bottomBackRight;
+}
+
+void texture(vec2 * tex_coords, int startIndex, int endIndex, int texture)
+{
+    int i=0;
+    vec2 tex0;
+    vec2 tex1;
+    vec2 tex2;
+    vec2 tex3;
+    vec2 tex4;
+    vec2 tex5;
+
+    if (texture == 0) //Grass
+    {
+        tex0 = (vec2){.5,0.5};
+        tex1 = (vec2){0.0,0.5};
+        tex2 = (vec2){0.0,1};
+        tex3 = (vec2){.5,0.5};
+        tex4 = (vec2){0.0,1};
+        tex5 = (vec2){0.5,1};
+    }
+    else if (texture == 1) //Bricks
+    {
+        tex0 = (vec2){.5,0.0};
+        tex1 = (vec2){0.0,0.0};
+        tex2 = (vec2){0.0,0.5};
+        tex3 = (vec2){.5,0.0};
+        tex4 = (vec2){0.0,0.5};
+        tex5 = (vec2){0.5,0.5};
+    }
+    else if (texture == 2) //Stones
+    {
+        tex0 = (vec2){1,0.0};
+        tex1 = (vec2){0.5,0.0};
+        tex2 = (vec2){0.5,0.5};
+        tex3 = (vec2){1,0.0};
+        tex4 = (vec2){0.5,0.5};
+        tex5 = (vec2){1,0.5};
+    }
+
+    for (i=startIndex; i<endIndex; i++)
+    {
+        if ((i-startIndex)%2 == 0)
+        {
+            tex_coords[i] = tex0;
+            i++;
+            tex_coords[i] = tex1;
+            i++;
+            tex_coords[i] = tex2;
+        }
+        else
+        {
+            tex_coords[i] = tex3;
+            i++;
+            tex_coords[i] = tex4;
+            i++;
+            tex_coords[i] = tex5;
+        }
+    }
+}
+
+void createWalls(vec4 * vertices, mazeInfoBlock info, int vertOffset, float yOffset, mazeSettings settings)
 {
     //Maze will be given a .1 inset from all sides of the plane.
-    float inset = 0.1;
-    float cellSideSize = (2 - inset*2) / mazeCols; 
-    float wallThick = cellSideSize * .1;
-    float wallHeight = .5;
-    float startPoint = -1+inset;
+    float cellSideSize = settings.cellSideSize; 
+    float wallThick = settings.wallThick;
+    float wallHeight = settings.wallHeight;
+    float startPoint = settings.startPoint;
     int i=0;
     int wall=0;
     for (i=0;i<2* mazeCols* mazeRows+ mazeCols + mazeRows && wall<info.walls;i++)
     {
         int foundWall = 0;
-        vec4 topBackLeft;
-        vec4 topBackRight;
-        vec4 topFrontLeft;
-        vec4 topFrontRight;
-
-        vec4 bottomBackLeft;
-        vec4 bottomBackRight;
-        vec4 bottomFrontLeft;
-        vec4 bottomFrontRight;
+        cube cube;
         
         if (i<(mazeRows+1)*mazeCols) //Wall is horizontal
         {
@@ -215,15 +354,15 @@ void createWalls(vec4 * vertices, vec2 * tex_coords, mazeInfoBlock info, int ver
                 int wallCol = i%mazeCols;
                 int wallRow = (i-wallCol)/(mazeCols);
                 
-                topBackLeft = (vec4){startPoint+wallCol*cellSideSize,yOffset+wallHeight,(startPoint+wallRow*cellSideSize)-.5*wallThick,1.0};
-                topBackRight = (vec4){startPoint+(wallCol+1)*cellSideSize,yOffset+wallHeight,(startPoint+wallRow*cellSideSize)-.5*wallThick,1.0};
-                topFrontLeft = (vec4){startPoint+wallCol*cellSideSize,yOffset+wallHeight,(startPoint+wallRow*cellSideSize)+.5*wallThick,1.0};
-                topFrontRight = (vec4){startPoint+(wallCol+1)*cellSideSize,yOffset+wallHeight,(startPoint+wallRow*cellSideSize)+.5*wallThick,1.0};
+                cube.topBackLeft = (vec4){startPoint+wallCol*cellSideSize,yOffset+wallHeight,(startPoint+wallRow*cellSideSize)-.5*wallThick,1.0};
+                cube.topBackRight = (vec4){startPoint+(wallCol+1)*cellSideSize,yOffset+wallHeight,(startPoint+wallRow*cellSideSize)-.5*wallThick,1.0};
+                cube.topFrontLeft = (vec4){startPoint+wallCol*cellSideSize,yOffset+wallHeight,(startPoint+wallRow*cellSideSize)+.5*wallThick,1.0};
+                cube.topFrontRight = (vec4){startPoint+(wallCol+1)*cellSideSize,yOffset+wallHeight,(startPoint+wallRow*cellSideSize)+.5*wallThick,1.0};
                 
-                bottomBackLeft = (vec4){startPoint+wallCol*cellSideSize,yOffset,(startPoint+wallRow*cellSideSize)-.5*wallThick,1.0};
-                bottomBackRight = (vec4){startPoint+(wallCol+1)*cellSideSize,yOffset,(startPoint+wallRow*cellSideSize)-.5*wallThick,1.0};
-                bottomFrontLeft = (vec4){startPoint+wallCol*cellSideSize,yOffset,(startPoint+wallRow*cellSideSize)+.5*wallThick,1.0};
-                bottomFrontRight = (vec4){startPoint+(wallCol+1)*cellSideSize,yOffset,(startPoint+wallRow*cellSideSize)+.5*wallThick,1.0};
+                cube.bottomBackLeft = (vec4){startPoint+wallCol*cellSideSize,yOffset,(startPoint+wallRow*cellSideSize)-.5*wallThick,1.0};
+                cube.bottomBackRight = (vec4){startPoint+(wallCol+1)*cellSideSize,yOffset,(startPoint+wallRow*cellSideSize)-.5*wallThick,1.0};
+                cube.bottomFrontLeft = (vec4){startPoint+wallCol*cellSideSize,yOffset,(startPoint+wallRow*cellSideSize)+.5*wallThick,1.0};
+                cube.bottomFrontRight = (vec4){startPoint+(wallCol+1)*cellSideSize,yOffset,(startPoint+wallRow*cellSideSize)+.5*wallThick,1.0};
                 
             }
         }
@@ -235,111 +374,54 @@ void createWalls(vec4 * vertices, vec2 * tex_coords, mazeInfoBlock info, int ver
                 int wallCol = (i-((mazeRows+1)*mazeCols))%(mazeCols+1);
                 int wallRow = ((i-((mazeRows+1)*mazeCols))-wallCol)/(mazeCols+1);
 
-                topBackLeft = (vec4){(startPoint+wallCol*cellSideSize)-.5*wallThick,yOffset+wallHeight,startPoint+wallRow*cellSideSize,1.0};
-                topBackRight = (vec4){(startPoint+wallCol*cellSideSize)+.5*wallThick,yOffset+wallHeight,startPoint+wallRow*cellSideSize,1.0};
-                topFrontLeft = (vec4){(startPoint+wallCol*cellSideSize)-.5*wallThick,yOffset+wallHeight,startPoint+(wallRow+1)*cellSideSize,1.0};
-                topFrontRight = (vec4){(startPoint+wallCol*cellSideSize)+.5*wallThick,yOffset+wallHeight,startPoint+(wallRow+1)*cellSideSize,1.0};
+                cube.topBackLeft = (vec4){(startPoint+wallCol*cellSideSize)-.5*wallThick,yOffset+wallHeight,startPoint+wallRow*cellSideSize,1.0};
+                cube.topBackRight = (vec4){(startPoint+wallCol*cellSideSize)+.5*wallThick,yOffset+wallHeight,startPoint+wallRow*cellSideSize,1.0};
+                cube.topFrontLeft = (vec4){(startPoint+wallCol*cellSideSize)-.5*wallThick,yOffset+wallHeight,startPoint+(wallRow+1)*cellSideSize,1.0};
+                cube.topFrontRight = (vec4){(startPoint+wallCol*cellSideSize)+.5*wallThick,yOffset+wallHeight,startPoint+(wallRow+1)*cellSideSize,1.0};
 
-                bottomBackLeft = (vec4){(startPoint+wallCol*cellSideSize)-.5*wallThick,yOffset,startPoint+wallRow*cellSideSize,1.0};
-                bottomBackRight = (vec4){(startPoint+wallCol*cellSideSize)+.5*wallThick,yOffset,startPoint+wallRow*cellSideSize,1.0};
-                bottomFrontLeft = (vec4){(startPoint+wallCol*cellSideSize)-.5*wallThick,yOffset,startPoint+(wallRow+1)*cellSideSize,1.0};
-                bottomFrontRight = (vec4){(startPoint+wallCol*cellSideSize)+.5*wallThick,yOffset,startPoint+(wallRow+1)*cellSideSize,1.0};
-                
+                cube.bottomBackLeft = (vec4){(startPoint+wallCol*cellSideSize)-.5*wallThick,yOffset,startPoint+wallRow*cellSideSize,1.0};
+                cube.bottomBackRight = (vec4){(startPoint+wallCol*cellSideSize)+.5*wallThick,yOffset,startPoint+wallRow*cellSideSize,1.0};
+                cube.bottomFrontLeft = (vec4){(startPoint+wallCol*cellSideSize)-.5*wallThick,yOffset,startPoint+(wallRow+1)*cellSideSize,1.0};
+                cube.bottomFrontRight = (vec4){(startPoint+wallCol*cellSideSize)+.5*wallThick,yOffset,startPoint+(wallRow+1)*cellSideSize,1.0};
+
             }
         }
 
         if (foundWall == 1)
         {
-                //Front face
-                vertices[vertOffset+wall*36+0] = topFrontRight;
-                vertices[vertOffset+wall*36+1] = topFrontLeft;
-                vertices[vertOffset+wall*36+2] = bottomFrontLeft;
-                tex_coords[vertOffset+wall*36+0] = (vec2){.5,0.0};
-                tex_coords[vertOffset+wall*36+1] = (vec2){0.0,0.0};
-                tex_coords[vertOffset+wall*36+2] = (vec2){0.0,0.5};
+            createBox(vertices, cube, vertOffset+wall*36);
+            wall++;
+        }
+    }
+}
 
-                vertices[vertOffset+wall*36+3] = topFrontRight;
-                vertices[vertOffset+wall*36+4] = bottomFrontLeft;
-                vertices[vertOffset+wall*36+5] = bottomFrontRight;
-                tex_coords[vertOffset+wall*36+3] = (vec2){.5,0.0};
-                tex_coords[vertOffset+wall*36+4] = (vec2){0.0,0.5};
-                tex_coords[vertOffset+wall*36+5] = (vec2){0.5,0.5};
+void createPoles(vec4 * vertices, mazeInfoBlock info, int vertOffset, float yOffset, mazeSettings settings)
+{
+    int poles = 0;
+    int i=0;
+    for (i=0; i<((mazeCols+1)*(mazeRows+1)) && poles < info.poles; i++)
+    {
+        cube cube;
+        if (info.poleArray[i] == 1)
+        {
+            int col = i%(mazeCols+1);
+            int row = (i-col)/mazeCols;
+            printf("%d %d\n", col, row);
 
-                //Back face
-                vertices[vertOffset+wall*36+6] = topBackLeft;
-                vertices[vertOffset+wall*36+7] = topBackRight;
-                vertices[vertOffset+wall*36+8] = bottomBackRight;
-                tex_coords[vertOffset+wall*36+6] = (vec2){.5,0.0};
-                tex_coords[vertOffset+wall*36+7] = (vec2){0.0,0.0};
-                tex_coords[vertOffset+wall*36+8] = (vec2){0.0,0.5};
+            cube.topBackLeft = (vec4){(settings.startPoint + col*settings.cellSideSize) - .6*settings.wallThick,yOffset+settings.wallHeight+ .1 *settings.wallThick,(settings.startPoint + row*settings.cellSideSize) - .6*settings.wallThick,1.0};
+            cube.topBackRight = (vec4){(settings.startPoint + col*settings.cellSideSize) + .6*settings.wallThick,yOffset+settings.wallHeight+ .1 *settings.wallThick,(settings.startPoint + row*settings.cellSideSize) - .6*settings.wallThick,1.0};
+            cube.topFrontLeft = (vec4){(settings.startPoint + col*settings.cellSideSize) - .6*settings.wallThick,yOffset+settings.wallHeight+ .1 *settings.wallThick,(settings.startPoint + row*settings.cellSideSize) + .6*settings.wallThick,1.0};
+            cube.topFrontRight = (vec4){(settings.startPoint + col*settings.cellSideSize) + .6*settings.wallThick,yOffset+settings.wallHeight+ .1 *settings.wallThick,(settings.startPoint + row*settings.cellSideSize) + .6*settings.wallThick,1.0};
 
-                vertices[vertOffset+wall*36+9] = topBackLeft;
-                vertices[vertOffset+wall*36+10] = bottomBackRight;
-                vertices[vertOffset+wall*36+11] = bottomBackLeft;
-                tex_coords[vertOffset+wall*36+9] = (vec2){.5,0.0};
-                tex_coords[vertOffset+wall*36+10] = (vec2){0.0,0.5};
-                tex_coords[vertOffset+wall*36+11] = (vec2){0.5,0.5};
+            
+            cube.bottomBackLeft = (vec4){(settings.startPoint + col*settings.cellSideSize) - .6*settings.wallThick,yOffset,(settings.startPoint + row*settings.cellSideSize) - .6*settings.wallThick,1.0};
+            cube.bottomBackRight = (vec4){(settings.startPoint + col*settings.cellSideSize) + .6*settings.wallThick,yOffset,(settings.startPoint + row*settings.cellSideSize) - .6*settings.wallThick,1.0};
+            cube.bottomFrontLeft = (vec4){(settings.startPoint + col*settings.cellSideSize) - .6*settings.wallThick,yOffset,(settings.startPoint + row*settings.cellSideSize) + .6*settings.wallThick,1.0};
+            cube.bottomFrontRight = (vec4){(settings.startPoint + col*settings.cellSideSize) + .6*settings.wallThick,yOffset,(settings.startPoint + row*settings.cellSideSize) + .6*settings.wallThick,1.0};
 
-                //Left face
-                vertices[vertOffset+wall*36+12] = topFrontLeft;
-                vertices[vertOffset+wall*36+13] = topBackLeft;
-                vertices[vertOffset+wall*36+14] = bottomBackLeft;
-                tex_coords[vertOffset+wall*36+12] = (vec2){.5,0.0};
-                tex_coords[vertOffset+wall*36+13] = (vec2){0.0,0.0};
-                tex_coords[vertOffset+wall*36+14] = (vec2){0.0,0.5};
-
-                vertices[vertOffset+wall*36+15] = topFrontLeft;
-                vertices[vertOffset+wall*36+16] = bottomBackLeft;
-                vertices[vertOffset+wall*36+17] = bottomFrontLeft;
-                tex_coords[vertOffset+wall*36+15] = (vec2){.5,0.0};
-                tex_coords[vertOffset+wall*36+16] = (vec2){0.0,0.5};
-                tex_coords[vertOffset+wall*36+17] = (vec2){0.5,0.5};
-
-                //Right face
-                vertices[vertOffset+wall*36+18] = topBackRight;
-                vertices[vertOffset+wall*36+19] = topFrontRight;
-                vertices[vertOffset+wall*36+20] = bottomFrontRight;
-                tex_coords[vertOffset+wall*36+18] = (vec2){.5,0.0};
-                tex_coords[vertOffset+wall*36+19] = (vec2){0.0,0.0};
-                tex_coords[vertOffset+wall*36+20] = (vec2){0.0,0.5};
-
-                vertices[vertOffset+wall*36+21] = topBackRight;
-                vertices[vertOffset+wall*36+22] = bottomFrontRight;
-                vertices[vertOffset+wall*36+23] = bottomBackRight;
-                tex_coords[vertOffset+wall*36+21] = (vec2){.5,0.0};
-                tex_coords[vertOffset+wall*36+22] = (vec2){0.0,0.5};
-                tex_coords[vertOffset+wall*36+23] = (vec2){0.5,0.5};
-
-                //Top face
-                vertices[vertOffset+wall*36+24] = topBackRight;
-                vertices[vertOffset+wall*36+25] = topBackLeft;
-                vertices[vertOffset+wall*36+26] = topFrontLeft;
-                tex_coords[vertOffset+wall*36+24] = (vec2){.5,0.0};
-                tex_coords[vertOffset+wall*36+25] = (vec2){0.0,0.0};
-                tex_coords[vertOffset+wall*36+26] = (vec2){0.0,0.5};
-
-                vertices[vertOffset+wall*36+27] = topBackRight;
-                vertices[vertOffset+wall*36+28] = topFrontLeft;
-                vertices[vertOffset+wall*36+29] = topFrontRight;
-                tex_coords[vertOffset+wall*36+27] = (vec2){.5,0.0};
-                tex_coords[vertOffset+wall*36+28] = (vec2){0.0,0.5};
-                tex_coords[vertOffset+wall*36+29] = (vec2){0.5,0.5};
-
-                //Bottom face
-                vertices[vertOffset+wall*36+30] = bottomFrontRight;
-                vertices[vertOffset+wall*36+31] = bottomFrontLeft;
-                vertices[vertOffset+wall*36+32] = bottomBackLeft;
-                tex_coords[vertOffset+wall*36+30] = (vec2){.5,0.0};
-                tex_coords[vertOffset+wall*36+31] = (vec2){0.0,0.0};
-                tex_coords[vertOffset+wall*36+32] = (vec2){0.0,0.5};
-
-                vertices[vertOffset+wall*36+33] = bottomFrontRight;
-                vertices[vertOffset+wall*36+34] = bottomBackLeft;
-                vertices[vertOffset+wall*36+35] = bottomBackRight;
-                tex_coords[vertOffset+wall*36+33] = (vec2){.5,0.0};
-                tex_coords[vertOffset+wall*36+34] = (vec2){0.0,0.5};
-                tex_coords[vertOffset+wall*36+35] = (vec2){0.5,0.5};
-                wall++;
+            print_v4(cube.bottomFrontRight);
+            createBox(vertices, cube, vertOffset+poles*36);
+            poles++;
         }
     }
 }
@@ -347,8 +429,6 @@ void createWalls(vec4 * vertices, vec2 * tex_coords, mazeInfoBlock info, int ver
 //Landon Higinbotham's code ends
 
 int num_vertices = 0;
-
-//vec2 tex_coords[6] = {{0.0, 1.0}, {1.0, 1.0}, {1.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}, {0.0, 0.0}};
 
 void init(void)
 {
@@ -360,16 +440,16 @@ void init(void)
     recursiveMazeBuilder(0, 0); //Recursively build the maze
     maze[mazeRows-1][mazeCols-1].e = 1; //Open the end gate
     mazeInfoBlock info = getMazeInfo();// Returns info we will use in generating the maze
+    mazeSettings settings;
+    settings.inset = 0.22;
+    settings.cellSideSize = (2 - settings.inset*2) / mazeCols; 
+    settings.wallThick = settings.cellSideSize * .1;
+    settings.wallHeight = .5;
+    settings.startPoint = -1+settings.inset;
 
-    num_vertices = 6 + info.walls*6*6/* + info.poles*6*6*/;
+    num_vertices = 6 + info.walls*6*6 + info.poles*6*6;
 
     vec4 vertices[num_vertices];
-    vec4 colors[num_vertices];
-    int v = 0;
-    for (v=0; v<num_vertices;v++)
-    {
-        colors[v] = (vec4){0,0,0,0};
-    }
     vec2 tex_coords[num_vertices];
 
     //Ground (flat-plane) Notes are from top view
@@ -391,7 +471,16 @@ void init(void)
 
     int vertOffset = 6;//Offsets the array index by the amount we already used
 
-    createWalls(vertices, tex_coords, info, vertOffset, yOffset); //Add walls to the vertices array
+    createWalls(vertices, info, vertOffset, yOffset, settings); //Add walls to the vertices array
+
+    vertOffset += info.walls*6*6;
+    printf("%d\n", info.walls);
+    printf("%d\n", vertOffset);
+
+    createPoles(vertices, info, vertOffset, yOffset, settings);
+
+    texture(tex_coords, 6, 6+info.walls*6*6, 1);
+    texture(tex_coords, 6+info.walls*6*6, 6+info.walls*6*6+info.poles*6*6, 2);
 
     //Solve maze
     solveMazeCWRF(0,0, mazeRows-1, mazeCols-1, 0); //This will recursively solve the maze. It checks in order of E-S-W-N
@@ -427,10 +516,9 @@ void init(void)
     GLuint buffer;
     glGenBuffers(1, &buffer);
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(colors) + sizeof(tex_coords), NULL, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(tex_coords), NULL, GL_STATIC_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-    glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices), sizeof(colors), colors);
-    glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(colors), sizeof(tex_coords), tex_coords);
+    glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices), sizeof(tex_coords), tex_coords);
 
     GLuint vPosition = glGetAttribLocation(program, "vPosition");
     glEnableVertexAttribArray(vPosition);
@@ -442,7 +530,7 @@ void init(void)
 
     GLuint vTexCoord = glGetAttribLocation(program, "vTexCoord");
     glEnableVertexAttribArray(vTexCoord);
-    glVertexAttribPointer(vTexCoord, 2, GL_FLOAT, GL_FALSE, 0, (GLvoid *) 0 + (sizeof(vertices) + sizeof(colors)));
+    glVertexAttribPointer(vTexCoord, 2, GL_FLOAT, GL_FALSE, 0, (GLvoid *) 0 + (sizeof(vertices)));
 
     GLuint texture_location = glGetUniformLocation(program, "texture");
     glUniform1i(texture_location, 0);
