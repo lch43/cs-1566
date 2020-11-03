@@ -26,6 +26,13 @@ mat4 model_view = {
     (vec4) {0,0,1,0},
     (vec4) {0,0,0,1},
 };
+GLuint projection_location;
+mat4 projection = {
+    (vec4) {1,0,0,0},
+    (vec4) {0,1,0,0},
+    (vec4) {0,0,1,0},
+    (vec4) {0,0,0,1},
+};
 
 typedef struct
 {
@@ -433,6 +440,30 @@ void createPoles(vec4 * vertices, mazeInfoBlock info, int vertOffset, float yOff
     }
 }
 
+typedef enum
+{
+    FLYING_TO_START = 0,
+    FLYING_AROUND,
+    FLYING_DOWN,
+    WARK_FORWARD,
+    TURN_LEFT,
+    TURN_RIGHT,
+} state;
+
+int isAnimating = 0;
+int currentStep = 0;
+state currentState = 1;
+
+void idle(void)
+{
+    if (isAnimating)
+    {
+        currentStep++;
+
+        //Go through and check what state.
+    }
+}
+
 //Landon Higinbotham's code ends
 
 int num_vertices = 0;
@@ -487,7 +518,8 @@ void init(void)
     texture(tex_coords, 6, 6+info.walls*6*6, 1);
     texture(tex_coords, 6+info.walls*6*6, 6+info.walls*6*6+info.poles*6*6, 2);
 
-    model_view = look_at((vec4){0.0,0.0,0.01,1.0},(vec4){0.0,-.5,0,1.0},(vec4){0,1,0,0});
+    model_view = look_at((vec4){0.0,3,0.0,1.0},(vec4){0.0,-.5,0,1.0},(vec4){0,0,-1,0});
+    projection = frustum(-1.0, 1.0, -1.0, 1.0, -1.0, -5.0);
 
     //Solve maze
     solveMazeCWRF(0,0, mazeRows-1, mazeCols-1, 0); //This will recursively solve the maze. It checks in order of E-S-W-N
@@ -546,6 +578,7 @@ void init(void)
 
     /*Landon Higinbotham's code starts here*/
     model_view_location = glGetUniformLocation(program, "model_view_matrix");
+    projection_location = glGetUniformLocation(program, "projection_matrix");
     /*Landon Higinbotham's code ends here*/
 
     glEnable(GL_CULL_FACE);
@@ -559,6 +592,7 @@ void display(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     /*Landon Higinbotham's code starts here*/
     glUniformMatrix4fv(model_view_location, 1, GL_FALSE, (GLfloat *) &model_view);
+    glUniformMatrix4fv(projection_location, 1, GL_FALSE, (GLfloat *) &projection);
     /*Landon Higinbotham's code ends here*/
     glDrawArrays(GL_TRIANGLES, 0, num_vertices);
     glutSwapBuffers();
@@ -580,6 +614,7 @@ int main(int argc, char **argv)
     init();
     glutDisplayFunc(display);
     glutKeyboardFunc(keyboard);
+    glutIdleFunc(idle);
     glutMainLoop();
 
     return 0;

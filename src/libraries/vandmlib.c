@@ -254,29 +254,12 @@ mat4 rotateZ_mat4(float degrees)
 mat4 look_at(vec4 eyePoint, vec4 atPoint, vec4 upVector)
 {
     vec4 vpn = v4_sub_v4(eyePoint, atPoint);
-    float d = mag_v4(vpn);
+    //float d = mag_v4(vpn);
     vec4 n = normalize_v4(vpn); //z'
     vec4 upVcrossn = cross_prod_v4(upVector, n);
     vec4 u = normalize_v4(upVcrossn); //x'
     vec4 ncrossu = cross_prod_v4(n, u);
     vec4 v = normalize_v4(ncrossu); //y'
-
-    /*printf("Eyepoint \n");
-    print_v4(eyePoint);
-    printf("atPoint \n");
-    print_v4(atPoint);
-    printf("upVector \n");
-    print_v4(upVector);
-    printf("upVcrossn \n");
-    print_v4(upVcrossn);
-    printf("VPN \n");
-    print_v4(vpn);
-    printf("n \n");
-    print_v4(n);
-    printf("u \n");
-    print_v4(u);
-    printf("v \n");
-    print_v4(v);*/
 
     mat4 m = {(vec4) {u.x, v.x, n.x, 0.0},
     (vec4) {u.y, v.y, n.y, 0.0},
@@ -284,23 +267,35 @@ mat4 look_at(vec4 eyePoint, vec4 atPoint, vec4 upVector)
     (vec4) {0.0, 0.0, 0.0, 1.0},
     };
 
-    //printf("m \n");
-    //print_mat4(m);
-
     mat4 translate = translate_mat4(-1* eyePoint.x, -1* eyePoint.y, -1* eyePoint.z);
 
-    //printf("translate \n");
-    //print_mat4(translate);
 
     return mat4_mult_mat4(m, translate);
 }
 
 mat4 ortho(float left, float right, float bottom, float top,float near, float far)
 {
-    return (mat4) {};
+
+    mat4 translation = translate_mat4(-1*((right+left)/2), -1*((top+bottom)/2), -1*((near+far)/2));
+
+    mat4 scaling = (mat4)
+    {
+        (vec4){2/(right-left),0.0,0.0,0.0},
+        (vec4){0.0,2/(top-bottom),0.0,0.0},
+        (vec4){0.0,0.0,2/(near-far),0.0},
+        (vec4){0.0,0.0,0.0,1.0}
+    };
+
+    return mat4_mult_mat4(scaling, translation);
 }
 
-mat4 frustum(float left, float right, float bottom, float top,float near, float far)
+mat4 frustum(float left, float right, float bottom, float top, float near, float far)
 {
-    return (mat4) {};
+    return (mat4)
+    {
+        (vec4){(-2*near)/(right-left),0.0,0.0,0.0},
+        (vec4){0.0,(-2*near)/(top-bottom),0.0,0.0},
+        (vec4){(left+right)/(right-left),(bottom+top)/(top-bottom),(near+far)/(far-near),-1.0},
+        (vec4){0.0,0.0,(-2*near*far)/(far-near),0.0}
+    };
 }
