@@ -77,7 +77,9 @@ typedef struct
 } cube;
 
 mazeBlock maze[8][8];
-int solution[64];
+int solution[64]; //best Solution
+int pathTaken[64+64+1]; //Path originally taken
+int pathTakenIndex = -1;
 
 void recursiveMazeBuilder(int row, int col)
 {
@@ -131,8 +133,10 @@ void recursiveMazeBuilder(int row, int col)
 
 int solveMazeCWRF(int row, int col, int solutionRow, int solutionCol, int index) //Solve clockwise right first.
 {
-    //printf("[ %d , %d ] \n", row, col);
     solution[index] = row * 8 + col;
+    pathTakenIndex++;
+    pathTaken[pathTakenIndex] = row * 8 + col;
+
     maze[row][col].visited = 0;
     int foundEnd = 0;
 
@@ -144,21 +148,45 @@ int solveMazeCWRF(int row, int col, int solutionRow, int solutionCol, int index)
     if (maze[row][col].e == 1 && maze[row][col+1].visited == 1) //check to see if visited is 1 (we haven't yet set it back to 0 after generating which means we haven't visited)
     {
         foundEnd = solveMazeCWRF(row, col+1, solutionRow, solutionCol, index+1); //go in direction of opening.
+
+        if (foundEnd != 1)
+        {
+            pathTakenIndex++;
+            pathTaken[pathTakenIndex] = row * 8 + col;
+        }
     }
 
     if (maze[row][col].s == 1 && maze[row+1][col].visited == 1 && foundEnd == 0) //check to see if visited is 1 (we haven't yet set it back to 0 after generating which means we haven't visited)
     {
         foundEnd = solveMazeCWRF(row+1, col, solutionRow, solutionCol, index+1); //go in direction of opening.
+
+        if (foundEnd != 1)
+        {
+            pathTakenIndex++;
+            pathTaken[pathTakenIndex] = row * 8 + col;
+        }
     }
 
     if (maze[row][col].w == 1 && maze[row][col-1].visited == 1 && !(row == 0 && col == 0) && foundEnd == 0) //check to see if visited is 1 (we haven't yet set it back to 0 after generating which means we haven't visited)
     {
         foundEnd = solveMazeCWRF(row, col-1, solutionRow, solutionCol, index+1); //go in direction of opening.
+
+        if (foundEnd != 1)
+        {
+            pathTakenIndex++;
+            pathTaken[pathTakenIndex] = row * 8 + col;
+        }
     }
 
     if (maze[row][col].n == 1 && maze[row-1][col].visited == 1 && foundEnd == 0) //check to see if visited is 1 (we haven't yet set it back to 0 after generating which means we haven't visited)
     {
         foundEnd = solveMazeCWRF(row-1, col, solutionRow, solutionCol, index+1); //go in direction of opening.
+
+        if (foundEnd != 1)
+        {
+            pathTakenIndex++;
+            pathTaken[pathTakenIndex] = row * 8 + col;
+        }
     }
 
     return foundEnd;
@@ -476,14 +504,26 @@ void init(void)
     maze[0][0].w = 1; //Open the start gate
     maze[0][0].visited = 1; //Set the start block to be visited (this is to stop multiple paths from being created)
     recursiveMazeBuilder(0, 0); //Recursively build the maze
+    solveMazeCWRF(0,0, mazeRows-1, mazeCols-1, 0); //This will recursively solve the maze. It checks in order of E-S-W-N
+    
+    int i=0;
+    for(i=0; i<64+64+1; i++)
+    {
+        printf("%d\n", pathTaken[i]);
+        if (pathTaken[i] == 63)
+        {
+            break;
+        }
+    }
+
     maze[mazeRows-1][mazeCols-1].e = 1; //Open the end gate
     mazeInfoBlock info = getMazeInfo();// Returns info we will use in generating the maze
     mazeSettings settings;
-    settings.inset = 0.22;
-    settings.cellSideSize = (2 - settings.inset*2) / mazeCols; 
+    settings.inset = 1;//0.22;
+    settings.cellSideSize = 1;//(2 - settings.inset*2) / mazeCols; 
     settings.wallThick = settings.cellSideSize * .1;
-    settings.wallHeight = .5;
-    settings.startPoint = -1+settings.inset;
+    settings.wallHeight = 1;//.5;
+    settings.startPoint = -4;//-1+settings.inset;
 
     num_vertices = 6 + info.walls*6*6 + info.poles*6*6;
 
@@ -492,16 +532,16 @@ void init(void)
 
     //Ground (flat-plane) Notes are from top view
     float yOffset = -0.5;
-    vertices[0] = (vec4){-1.0,yOffset,-1.0,1.0}; //Top left
-    vertices[1] = (vec4){-1.0,yOffset,1.0,1.0}; //Bottom left
-    vertices[2] = (vec4){1.0,yOffset,-1.0,1.0}; //Top right
+    vertices[0] = (vec4){-5.0,yOffset,-5.0,1.0}; //Top left
+    vertices[1] = (vec4){-5.0,yOffset,5.0,1.0}; //Bottom left
+    vertices[2] = (vec4){5.0,yOffset,-5.0,1.0}; //Top right
     tex_coords[0] = (vec2){0.0,0.5};
     tex_coords[1] = (vec2){0.0,1};
     tex_coords[2] = (vec2){0.5,0.5};
 
-    vertices[3] = (vec4){-1.0,yOffset,1.0,1.0}; //Bottom left
-    vertices[4] = (vec4){1.0,yOffset,1.0,1.0}; //Bottom right
-    vertices[5] = (vec4){1.0,yOffset,-1.0,1.0}; //Top Right
+    vertices[3] = (vec4){-5.0,yOffset,5.0,1.0}; //Bottom left
+    vertices[4] = (vec4){5.0,yOffset,5.0,1.0}; //Bottom right
+    vertices[5] = (vec4){5.0,yOffset,-5.0,1.0}; //Top Right
     tex_coords[3] = (vec2){0.0,1};
     tex_coords[4] = (vec2){0.5,1};
     tex_coords[5] = (vec2){0.5,0.5};
@@ -518,11 +558,8 @@ void init(void)
     texture(tex_coords, 6, 6+info.walls*6*6, 1);
     texture(tex_coords, 6+info.walls*6*6, 6+info.walls*6*6+info.poles*6*6, 2);
 
-    model_view = look_at((vec4){0.0,3,0.0,1.0},(vec4){0.0,-.5,0,1.0},(vec4){0,0,-1,0});
-    projection = frustum(-1.0, 1.0, -1.0, 1.0, -1.0, -5.0);
-
-    //Solve maze
-    solveMazeCWRF(0,0, mazeRows-1, mazeCols-1, 0); //This will recursively solve the maze. It checks in order of E-S-W-N
+    model_view = look_at((vec4){0.0,6,0.0,1.0},(vec4){0.0,-.5,0,1.0},(vec4){0,0,-1,0});
+    projection = frustum(-1.0, 1.0, -1.0, 1.0, -1.0, -100.0);
     //Landon Higinbotham's code ends
 
     int width = 800;
