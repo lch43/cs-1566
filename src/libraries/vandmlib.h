@@ -70,6 +70,12 @@ mat4 rotateY_mat4_arb(float ax, float d);
 
 mat4 rotateZ_mat4(float degrees);
 
+mat4 look_at(vec4 eyePoint, vec4 atPoint, vec4 upVector);
+
+mat4 ortho(float left, float right, float bottom, float top,float near, float far);
+
+mat4 frustum(float left, float right, float bottom, float top,float near, float far);
+
 /*Helper functions that I would like to have just in case
 
 float sarrus(float a, float b, float c, float d, float e, float f, float g, float h, float i);

@@ -18,6 +18,15 @@ typedef struct
 } vec2;
 
 //Landon Higinbotham's code starts
+
+GLuint model_view_location;
+mat4 model_view = {
+    (vec4) {1,0,0,0},
+    (vec4) {0,1,0,0},
+    (vec4) {0,0,1,0},
+    (vec4) {0,0,0,1},
+};
+
 typedef struct
 {
     int n;
@@ -405,8 +414,7 @@ void createPoles(vec4 * vertices, mazeInfoBlock info, int vertOffset, float yOff
         if (info.poleArray[i] == 1)
         {
             int col = i%(mazeCols+1);
-            int row = (i-col)/mazeCols;
-            printf("%d %d\n", col, row);
+            int row = (i-col)/(mazeCols+1);
 
             cube.topBackLeft = (vec4){(settings.startPoint + col*settings.cellSideSize) - .6*settings.wallThick,yOffset+settings.wallHeight+ .1 *settings.wallThick,(settings.startPoint + row*settings.cellSideSize) - .6*settings.wallThick,1.0};
             cube.topBackRight = (vec4){(settings.startPoint + col*settings.cellSideSize) + .6*settings.wallThick,yOffset+settings.wallHeight+ .1 *settings.wallThick,(settings.startPoint + row*settings.cellSideSize) - .6*settings.wallThick,1.0};
@@ -419,7 +427,6 @@ void createPoles(vec4 * vertices, mazeInfoBlock info, int vertOffset, float yOff
             cube.bottomFrontLeft = (vec4){(settings.startPoint + col*settings.cellSideSize) - .6*settings.wallThick,yOffset,(settings.startPoint + row*settings.cellSideSize) + .6*settings.wallThick,1.0};
             cube.bottomFrontRight = (vec4){(settings.startPoint + col*settings.cellSideSize) + .6*settings.wallThick,yOffset,(settings.startPoint + row*settings.cellSideSize) + .6*settings.wallThick,1.0};
 
-            print_v4(cube.bottomFrontRight);
             createBox(vertices, cube, vertOffset+poles*36);
             poles++;
         }
@@ -474,13 +481,13 @@ void init(void)
     createWalls(vertices, info, vertOffset, yOffset, settings); //Add walls to the vertices array
 
     vertOffset += info.walls*6*6;
-    printf("%d\n", info.walls);
-    printf("%d\n", vertOffset);
 
     createPoles(vertices, info, vertOffset, yOffset, settings);
 
     texture(tex_coords, 6, 6+info.walls*6*6, 1);
     texture(tex_coords, 6+info.walls*6*6, 6+info.walls*6*6+info.poles*6*6, 2);
+
+    model_view = look_at((vec4){0.0,0.0,0.01,1.0},(vec4){0.0,-.5,0,1.0},(vec4){0,1,0,0});
 
     //Solve maze
     solveMazeCWRF(0,0, mazeRows-1, mazeCols-1, 0); //This will recursively solve the maze. It checks in order of E-S-W-N
@@ -535,7 +542,11 @@ void init(void)
     GLuint texture_location = glGetUniformLocation(program, "texture");
     glUniform1i(texture_location, 0);
 
-    printf("texture_location: %i\n", texture_location);
+    //printf("texture_location: %i\n", texture_location);
+
+    /*Landon Higinbotham's code starts here*/
+    model_view_location = glGetUniformLocation(program, "model_view_matrix");
+    /*Landon Higinbotham's code ends here*/
 
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
@@ -546,6 +557,9 @@ void init(void)
 void display(void)
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    /*Landon Higinbotham's code starts here*/
+    glUniformMatrix4fv(model_view_location, 1, GL_FALSE, (GLfloat *) &model_view);
+    /*Landon Higinbotham's code ends here*/
     glDrawArrays(GL_TRIANGLES, 0, num_vertices);
     glutSwapBuffers();
 }

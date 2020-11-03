@@ -249,3 +249,58 @@ mat4 rotateZ_mat4(float degrees)
         (vec4){0, 0, 0, 1}
     };
 }
+
+
+mat4 look_at(vec4 eyePoint, vec4 atPoint, vec4 upVector)
+{
+    vec4 vpn = v4_sub_v4(eyePoint, atPoint);
+    float d = mag_v4(vpn);
+    vec4 n = normalize_v4(vpn); //z'
+    vec4 upVcrossn = cross_prod_v4(upVector, n);
+    vec4 u = normalize_v4(upVcrossn); //x'
+    vec4 ncrossu = cross_prod_v4(n, u);
+    vec4 v = normalize_v4(ncrossu); //y'
+
+    /*printf("Eyepoint \n");
+    print_v4(eyePoint);
+    printf("atPoint \n");
+    print_v4(atPoint);
+    printf("upVector \n");
+    print_v4(upVector);
+    printf("upVcrossn \n");
+    print_v4(upVcrossn);
+    printf("VPN \n");
+    print_v4(vpn);
+    printf("n \n");
+    print_v4(n);
+    printf("u \n");
+    print_v4(u);
+    printf("v \n");
+    print_v4(v);*/
+
+    mat4 m = {(vec4) {u.x, v.x, n.x, 0.0},
+    (vec4) {u.y, v.y, n.y, 0.0},
+    (vec4) {u.z, v.z, n.z, 0.0},
+    (vec4) {0.0, 0.0, 0.0, 1.0},
+    };
+
+    //printf("m \n");
+    //print_mat4(m);
+
+    mat4 translate = translate_mat4(-1* eyePoint.x, -1* eyePoint.y, -1* eyePoint.z);
+
+    //printf("translate \n");
+    //print_mat4(translate);
+
+    return mat4_mult_mat4(m, translate);
+}
+
+mat4 ortho(float left, float right, float bottom, float top,float near, float far)
+{
+    return (mat4) {};
+}
+
+mat4 frustum(float left, float right, float bottom, float top,float near, float far)
+{
+    return (mat4) {};
+}
