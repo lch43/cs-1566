@@ -482,10 +482,10 @@ void createPoles(vec4 * vertices, mazeInfoBlock info, int vertOffset, float yOff
 
 typedef enum
 {
-    FLYING_TO_START = 0,
+    FLYING_TO_CIRCLE = 0,
     FLYING_AROUND,
     FLYING_DOWN,
-    WARK_FORWARD,
+    WALK_FORWARD,
     TURN_LEFT,
     TURN_RIGHT,
 } state;
@@ -495,6 +495,21 @@ int currentStep = 0;
 state currentState = 1;
 int initialSolutionIndex = 0;
 int bestSolutionIndex = 0;
+int initialSolutionDone = 0;
+
+//pathTaken <-Original path taken
+//solution <-Best solution
+
+vec4 refEye = {};
+vec4 refAt = {};
+vec4 refUp = {};
+
+vec4 currEye = {};
+vec4 currAt = {};
+vec4 currUp = {};
+
+int direction = 1; // 0 North - 1 East - 2 South - 3 West
+int facingDirection = 1; //Direction currently facing
 
 void idle(void)
 {
@@ -504,7 +519,7 @@ void idle(void)
 
         //Go through and check what state.
 
-        if (currentState == 0) //FLYING_TO_START
+        if (currentState == 0) //FLYING_TO_CIRCLE
         {
             float maxStep = 800.0;
             if (currentStep <= maxStep)
@@ -516,7 +531,16 @@ void idle(void)
                 moveUp.w = 0.0;
                 model_view = look_at(moveEye, startAt, moveUp);
                 projection = frustum(frustumOutside.left, frustumOutside.right, frustumOutside.bottom, frustumOutside.top, frustumOutside.near, frustumOutside.far);
-    
+                currEye = moveEye;
+                currAt = startAt;
+                currUp = moveUp;
+
+                if (currentStep == maxStep)
+                {
+                    refEye = currEye;
+                    refAt = currAt;
+                    refUp = currAt;
+                }
             }
             else
             {
@@ -535,8 +559,17 @@ void idle(void)
 
                 float x = radius * cos((5*M_PI)/4-(2*M_PI)*(alpha));
                 float z = radius * sin((5*M_PI)/4-(2*M_PI)*(alpha));
+                currEye = (vec4){x, startEye.y, z, 1.0};
+                currAt = startAt;
+                currUp = (vec4){0.0,1.0,0.0,0.0};
+                model_view = look_at(currEye, startAt, currUp);
 
-                model_view = look_at((vec4){x, startEye.y, z, 1.0}, startAt, (vec4){0.0,1.0,0.0,0.0});
+                if (currentStep == maxStep)
+                {
+                    refEye = currEye;
+                    refAt = currAt;
+                    refUp = currAt;
+                }
             }
             else
             {
@@ -558,7 +591,10 @@ void idle(void)
                 moveEye.w = 1.0;
                 moveAt.w = 1.0;
 
-                model_view = look_at(moveEye, moveAt, (vec4){0.0,1.0,0.0,0.0});
+                currEye = moveEye;
+                currAt = moveAt;
+                currUp = (vec4){0.0,1.0,0.0,0.0};
+                model_view = look_at(moveEye, moveAt, currUp);
 
                 projectionArgs newProjection = {
                     (frustumInside.left-frustumOutside.left)*alpha + frustumOutside.left,
@@ -570,6 +606,13 @@ void idle(void)
                 };
 
                 projection = frustum(newProjection.left, newProjection.right, newProjection.bottom, newProjection.top, newProjection.near, newProjection.far);
+
+                if (currentStep == maxStep)
+                {
+                    refEye = currEye;
+                    refAt = currAt;
+                    refUp = currUp;
+                }
             }
             else
             {
@@ -577,12 +620,124 @@ void idle(void)
                 currentState = 3;
             }
         }
-        else if (currentState == 3) //WARK_FORWARD
+        else if (currentState == 3) //WALK_FORWARD
         {
             float maxStep = 400.0;
             if (currentStep <= maxStep)
             {
+                float alpha = (currentStep/maxStep);
+                vec4 eyeGoal = refEye;
+                if (direction == 0)
+                {
+                    eyeGoal.z -= 1;
+                }
+                else if (direction == 1)
+                {
+                    eyeGoal.x += 1;
+                } 
+                else if (direction == 2)
+                {
+                    eyeGoal.z += 1;
+                } 
+                else if (direction == 3)
+                {
+                    eyeGoal.x -= 1;
+                } 
+                vec4 moveEye = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4(eyeGoal, refEye)), refEye);
+                moveEye.w = 1.0;
+                model_view = look_at(moveEye, refAt, refUp);
 
+
+                if (currentStep == maxStep)
+                {
+                    refEye = moveEye;
+                    refAt = refAt;
+                    refUp = refUp;
+
+
+                    //Figure out what to do next
+                    if (pathTaken[initialSolutionIndex] != 63)
+                    {
+                        initialSolutionIndex++;
+                        int difference = pathTaken[initialSolutionIndex] - pathTaken[initialSolutionIndex-1];
+                        printf("Step %d initialSolutionIndex %d\n", difference, initialSolutionIndex);
+                        if (difference == -8) //North
+                        {
+                            if (direction == 1 || direction == 2) //Turn left
+                            {
+                                currentState = 4;
+                            }
+                            else if (direction == 3) //Turn right
+                            {
+                                currentState = 5;
+                            }
+                            currentStep = 0;
+                            direction = 0;
+                        }
+                        else if (difference == 1) //East
+                        {
+                            if (direction == 2) //Turn left
+                            {
+                                currentState = 4;
+                            }
+                            else if (direction == 0 || direction == 3) //Turn right
+                            {
+                                currentState = 5;
+                            }
+                            currentStep = 0;
+                            direction = 1;
+                        }
+                        else if (difference == 8) //South
+                        {
+                            if (direction == 0 || direction == 3) //Turn left
+                            {
+                                currentState = 4;
+                            }
+                            else if (direction == 1) //Turn right
+                            {
+                                currentState = 5;
+                            }
+                            currentStep = 0;
+                            direction = 2;
+                        }
+                        else if (difference == -1) //West
+                        {
+                            if (direction == 0) //Turn left
+                            {
+                                currentState = 4;
+                            }
+                            else if (direction == 1 || direction == 2) //Turn right
+                            {
+                                currentState = 5;
+                            }
+                            currentStep = 0;
+                            direction = 3;
+                        }
+                    }
+                    else if(initialSolutionDone == 0)
+                    {
+                        if (direction == 0 || direction == 3)
+                        {
+                            currentState = 5;
+                        }
+                        else if (direction == 2)
+                        {
+                            currentState = 4;
+                        }
+                        currentStep = 0;
+                        initialSolutionDone++;
+                        direction = 1;
+                    }
+                    else if (initialSolutionDone == 1)
+                    {
+                        direction = 3;
+                        int i = 0;
+                        for (i=0; solution[i] != 63; i++){}
+                        bestSolutionIndex = i;
+                        currentState = 4;
+                        currentStep = 0;
+                    }
+                }
             }
         }
         else if (currentState == 4) //TURN_LEFT
@@ -590,7 +745,46 @@ void idle(void)
             float maxStep = 400.0;
             if (currentStep <= maxStep)
             {
+                if (currentStep == 1)
+                {
+                    facingDirection -= 1;
+                    if (facingDirection < 0)
+                    {
+                        facingDirection = 3;
+                    }
+                }
+                float alpha = (currentStep/maxStep);
+                vec4 atGoal = refEye;
+                if (facingDirection == 0)
+                {
+                    atGoal.z -= 5;
+                }
+                else if (facingDirection == 1)
+                {
+                    atGoal.x += 5;
+                }
+                else if (facingDirection == 2)
+                {
+                    atGoal.z += 5;
+                }
+                else if (facingDirection == 3)
+                {
+                    atGoal.x -= 5;
+                }
+                vec4 moveAt = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4(atGoal, refAt)), refAt);
+                model_view = look_at(refEye, moveAt, refUp);
 
+                if (currentStep == maxStep)
+                {
+                    refEye = refEye;
+                    refAt = moveAt;
+                    refUp = refUp;
+                    currentStep = 0;
+                    if (facingDirection == direction)
+                    {
+                        currentState = 3;
+                    }
+                }
             }
         }
         else if (currentState == 5) //TURN_RIGHT
@@ -598,6 +792,47 @@ void idle(void)
             float maxStep = 400.0;
             if (currentStep <= maxStep)
             {
+                if (currentStep == 1)
+                {
+                    facingDirection++;
+                    if (facingDirection > 3)
+                    {
+                        facingDirection = 0;
+                    }
+                }
+
+                float alpha = (currentStep/maxStep);
+                vec4 atGoal = refEye;
+                if (facingDirection == 0)
+                {
+                    atGoal.z -= 5;
+                }
+                else if (facingDirection == 1)
+                {
+                    atGoal.x += 5;
+                }
+                else if (facingDirection == 2)
+                {
+                    atGoal.z += 5;
+                }
+                else if (facingDirection == 3)
+                {
+                    atGoal.x -= 5;
+                }
+                vec4 moveAt = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4(atGoal, refAt)), refAt);
+                model_view = look_at(refEye, moveAt, refUp);
+
+                if (currentStep == maxStep)
+                {
+                    refEye = refEye;
+                    refAt = moveAt;
+                    refUp = refUp;
+                    currentStep = 0;
+                    if (facingDirection == direction)
+                    {
+                        currentState = 3;
+                    }
+                }
 
             }
         }
@@ -613,11 +848,15 @@ void init(void)
 {
     //Landon Higinbotham's code starts
     //Generate maze
-    srand(time(NULL)); //Set the seed using time
+    //unsigned int t = time(NULL);
+    unsigned int t = 1604484940;
+    srand(t); //Set the seed using time
+    printf("%u \n", t);
     maze[0][0].w = 1; //Open the start gate
     maze[0][0].visited = 1; //Set the start block to be visited (this is to stop multiple paths from being created)
     recursiveMazeBuilder(0, 0); //Recursively build the maze
     solveMazeCWRF(0,0, mazeRows-1, mazeCols-1, 0); //This will recursively solve the maze. It checks in order of E-S-W-N
+    printf("%d\n", pathTaken[0]);
 
     maze[mazeRows-1][mazeCols-1].e = 1; //Open the end gate
     mazeInfoBlock info = getMazeInfo();// Returns info we will use in generating the maze
