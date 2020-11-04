@@ -20,9 +20,16 @@ typedef struct
 
 //Landon Higinbotham's code starts
 
+typedef struct {
+    float left; float right; float bottom; float top; float near; float far;
+} projectionArgs;
+
 vec4 startEye = {0.0,6,0.0,1.0};
 vec4 startAt = {0.0,-.5,0,1.0};
 vec4 startUp = {0,0,-1,0};
+
+projectionArgs frustumOutside = {-1.0, 1.0, -1.0, 1.0, -1, -15.0};
+projectionArgs frustumInside = {-.2, .2, -.2, .2, -0.1, -15.0};
 
 GLuint model_view_location;
 mat4 model_view = {
@@ -508,6 +515,8 @@ void idle(void)
                 moveEye.w = 1.0;
                 moveUp.w = 0.0;
                 model_view = look_at(moveEye, startAt, moveUp);
+                projection = frustum(frustumOutside.left, frustumOutside.right, frustumOutside.bottom, frustumOutside.top, frustumOutside.near, frustumOutside.far);
+    
             }
             else
             {
@@ -524,8 +533,8 @@ void idle(void)
 
                 float radius = sqrt(50);
 
-                float x = radius * cos((5*M_PI)/4+(2*M_PI)*(currentStep/maxStep));
-                float z = radius * sin((5*M_PI)/4+(2*M_PI)*(currentStep/maxStep));
+                float x = radius * cos((5*M_PI)/4-(2*M_PI)*(alpha));
+                float z = radius * sin((5*M_PI)/4-(2*M_PI)*(alpha));
 
                 model_view = look_at((vec4){x, startEye.y, z, 1.0}, startAt, (vec4){0.0,1.0,0.0,0.0});
             }
@@ -541,7 +550,7 @@ void idle(void)
             if (currentStep <= maxStep)
             {
                 float alpha = (currentStep/maxStep);
-                vec4 eyeGoal = {-4.5,0.0,-3.5,1.0};
+                vec4 eyeGoal = {-4.5,0.5,-3.5,1.0};
                 vec4 moveEye = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4(eyeGoal, (vec4){-5.0,startEye.y,-5.0,1.0})), (vec4){-5.0,startEye.y,-5.0,1.0});
                 vec4 atGoal = eyeGoal;
                 atGoal.x += 5;
@@ -550,6 +559,17 @@ void idle(void)
                 moveAt.w = 1.0;
 
                 model_view = look_at(moveEye, moveAt, (vec4){0.0,1.0,0.0,0.0});
+
+                projectionArgs newProjection = {
+                    (frustumInside.left-frustumOutside.left)*alpha + frustumOutside.left,
+                    (frustumInside.right-frustumOutside.right)*alpha + frustumOutside.right,
+                    (frustumInside.bottom-frustumOutside.bottom)*alpha + frustumOutside.bottom,
+                    (frustumInside.top-frustumOutside.top)*alpha + frustumOutside.top,
+                    (frustumInside.near-frustumOutside.near)*alpha + frustumOutside.near,
+                    (frustumInside.far-frustumOutside.far)*alpha + frustumOutside.far
+                };
+
+                projection = frustum(newProjection.left, newProjection.right, newProjection.bottom, newProjection.top, newProjection.near, newProjection.far);
             }
             else
             {
@@ -559,7 +579,7 @@ void idle(void)
         }
         else if (currentState == 3) //WARK_FORWARD
         {
-            float maxStep = 800.0;
+            float maxStep = 400.0;
             if (currentStep <= maxStep)
             {
 
@@ -567,7 +587,7 @@ void idle(void)
         }
         else if (currentState == 4) //TURN_LEFT
         {
-            float maxStep = 800.0;
+            float maxStep = 400.0;
             if (currentStep <= maxStep)
             {
 
@@ -575,7 +595,7 @@ void idle(void)
         }
         else if (currentState == 5) //TURN_RIGHT
         {
-            float maxStep = 800.0;
+            float maxStep = 400.0;
             if (currentStep <= maxStep)
             {
 
@@ -598,16 +618,6 @@ void init(void)
     maze[0][0].visited = 1; //Set the start block to be visited (this is to stop multiple paths from being created)
     recursiveMazeBuilder(0, 0); //Recursively build the maze
     solveMazeCWRF(0,0, mazeRows-1, mazeCols-1, 0); //This will recursively solve the maze. It checks in order of E-S-W-N
-    
-    int i=0;
-    for(i=0; i<64+64+1; i++)
-    {
-        printf("%d\n", pathTaken[i]);
-        if (pathTaken[i] == 63)
-        {
-            break;
-        }
-    }
 
     maze[mazeRows-1][mazeCols-1].e = 1; //Open the end gate
     mazeInfoBlock info = getMazeInfo();// Returns info we will use in generating the maze
@@ -615,7 +625,7 @@ void init(void)
     settings.inset = 1;
     settings.cellSideSize = 1;
     settings.wallThick = settings.cellSideSize * .1;
-    settings.wallHeight = 1;
+    settings.wallHeight = 1.5;
     settings.startPoint = -4;
 
     num_vertices = 6 + info.walls*6*6 + info.poles*6*6;
@@ -652,7 +662,7 @@ void init(void)
     texture(tex_coords, 6+info.walls*6*6, 6+info.walls*6*6+info.poles*6*6, 2);
 
     model_view = look_at(startEye,startAt,startUp);
-    projection = frustum(-1.0, 1.0, -1.0, 1.0, -1, -30.0);
+    projection = frustum(frustumOutside.left, frustumOutside.right, frustumOutside.bottom, frustumOutside.top, frustumOutside.near, frustumOutside.far);
     //Landon Higinbotham's code ends
 
     int width = 800;
