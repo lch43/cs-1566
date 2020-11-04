@@ -204,6 +204,56 @@ int solveMazeCWRF(int row, int col, int solutionRow, int solutionCol, int index)
     return foundEnd;
 }
 
+void printMaze()
+{
+    int i;
+    int j;
+    for (j = 0; j<mazeCols; j++)
+    {
+        if (maze[0][j].n == 0)
+        {
+            printf(" _");
+        }
+        else
+        {
+            printf("  ");
+        }
+    }
+    printf("\n");
+    for (i = 0; i<mazeRows; i++)
+    {
+        for (j = 0; j<mazeCols; j++)
+        {
+            if (maze[i][j].w == 0)
+            {
+                printf("|");
+            }
+            else
+            {
+                printf(" ");
+            }
+            if (maze[i][j].s == 0)
+            {
+                printf("_");
+            }
+            else
+            {
+                printf(" ");
+            }
+            
+        }
+        if (maze[i][j-1].e == 0)
+        {
+            printf("|\n");
+        }
+        else
+        {
+            printf(" \n");
+        }
+        
+    }
+}
+
 mazeInfoBlock getMazeInfo()
 {
     mazeInfoBlock block = {0,0};
@@ -586,7 +636,7 @@ void idle(void)
                 vec4 eyeGoal = {-4.5,0.5,-3.5,1.0};
                 vec4 moveEye = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4(eyeGoal, (vec4){-5.0,startEye.y,-5.0,1.0})), (vec4){-5.0,startEye.y,-5.0,1.0});
                 vec4 atGoal = eyeGoal;
-                atGoal.x += 5;
+                atGoal.x += 50;
                 vec4 moveAt = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4(atGoal, startAt)), startAt);
                 moveEye.w = 1.0;
                 moveAt.w = 1.0;
@@ -656,11 +706,18 @@ void idle(void)
 
 
                     //Figure out what to do next
-                    if (pathTaken[initialSolutionIndex] != 63)
+                    if (pathTaken[initialSolutionIndex] != 63 || (initialSolutionDone == 2 && bestSolutionIndex != 0))
                     {
-                        initialSolutionIndex++;
+                        if (pathTaken[initialSolutionIndex] != 63)
+                        {
+                            initialSolutionIndex++;
+                        }
                         int difference = pathTaken[initialSolutionIndex] - pathTaken[initialSolutionIndex-1];
-                        printf("Step %d initialSolutionIndex %d\n", difference, initialSolutionIndex);
+                        if (initialSolutionDone == 2 && bestSolutionIndex != 0)
+                        {
+                            bestSolutionIndex--;
+                            difference = solution[bestSolutionIndex] - solution[bestSolutionIndex+1];
+                        }
                         if (difference == -8) //North
                         {
                             if (direction == 1 || direction == 2) //Turn left
@@ -728,14 +785,29 @@ void idle(void)
                         initialSolutionDone++;
                         direction = 1;
                     }
-                    else if (initialSolutionDone == 1)
+                    else if (initialSolutionDone == 1 && bestSolutionIndex == 0)
                     {
                         direction = 3;
                         int i = 0;
                         for (i=0; solution[i] != 63; i++){}
+                        initialSolutionDone++;
                         bestSolutionIndex = i;
                         currentState = 4;
                         currentStep = 0;
+                    }
+                    else if (initialSolutionDone == 2 && bestSolutionIndex == 0)
+                    {
+                        direction = 3;
+                        if (direction == 0 || direction == 1)
+                        {
+                            currentState = 4;
+                        }
+                        else if (direction == 2)
+                        {
+                            currentState = 5;
+                        }
+                        currentStep = 0;
+                        initialSolutionDone++;
                     }
                 }
             }
@@ -757,19 +829,19 @@ void idle(void)
                 vec4 atGoal = refEye;
                 if (facingDirection == 0)
                 {
-                    atGoal.z -= 5;
+                    atGoal.z -= 50;
                 }
                 else if (facingDirection == 1)
                 {
-                    atGoal.x += 5;
+                    atGoal.x += 50;
                 }
                 else if (facingDirection == 2)
                 {
-                    atGoal.z += 5;
+                    atGoal.z += 50;
                 }
                 else if (facingDirection == 3)
                 {
-                    atGoal.x -= 5;
+                    atGoal.x -= 50;
                 }
                 vec4 moveAt = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4(atGoal, refAt)), refAt);
                 model_view = look_at(refEye, moveAt, refUp);
@@ -805,19 +877,19 @@ void idle(void)
                 vec4 atGoal = refEye;
                 if (facingDirection == 0)
                 {
-                    atGoal.z -= 5;
+                    atGoal.z -= 50;
                 }
                 else if (facingDirection == 1)
                 {
-                    atGoal.x += 5;
+                    atGoal.x += 50;
                 }
                 else if (facingDirection == 2)
                 {
-                    atGoal.z += 5;
+                    atGoal.z += 50;
                 }
                 else if (facingDirection == 3)
                 {
-                    atGoal.x -= 5;
+                    atGoal.x -= 50;
                 }
                 vec4 moveAt = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4(atGoal, refAt)), refAt);
                 model_view = look_at(refEye, moveAt, refUp);
@@ -848,17 +920,15 @@ void init(void)
 {
     //Landon Higinbotham's code starts
     //Generate maze
-    //unsigned int t = time(NULL);
-    unsigned int t = 1604484940;
+    unsigned int t = time(NULL);
     srand(t); //Set the seed using time
-    printf("%u \n", t);
     maze[0][0].w = 1; //Open the start gate
     maze[0][0].visited = 1; //Set the start block to be visited (this is to stop multiple paths from being created)
     recursiveMazeBuilder(0, 0); //Recursively build the maze
     solveMazeCWRF(0,0, mazeRows-1, mazeCols-1, 0); //This will recursively solve the maze. It checks in order of E-S-W-N
-    printf("%d\n", pathTaken[0]);
-
     maze[mazeRows-1][mazeCols-1].e = 1; //Open the end gate
+    printMaze();
+
     mazeInfoBlock info = getMazeInfo();// Returns info we will use in generating the maze
     mazeSettings settings;
     settings.inset = 1;
