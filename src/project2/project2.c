@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 #include "../libraries/initShader.h"
 #include "../libraries/vandmlib.h"
 
@@ -18,6 +19,10 @@ typedef struct
 } vec2;
 
 //Landon Higinbotham's code starts
+
+vec4 startEye = {0.0,6,0.0,1.0};
+vec4 startAt = {0.0,-.5,0,1.0};
+vec4 startUp = {0,0,-1,0};
 
 GLuint model_view_location;
 mat4 model_view = {
@@ -481,6 +486,8 @@ typedef enum
 int isAnimating = 0;
 int currentStep = 0;
 state currentState = 1;
+int initialSolutionIndex = 0;
+int bestSolutionIndex = 0;
 
 void idle(void)
 {
@@ -489,6 +496,92 @@ void idle(void)
         currentStep++;
 
         //Go through and check what state.
+
+        if (currentState == 0) //FLYING_TO_START
+        {
+            float maxStep = 800.0;
+            if (currentStep <= maxStep)
+            {
+                float alpha = (currentStep/maxStep);
+                vec4 moveEye = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4((vec4){-5.0,startEye.y,-5.0,1.0}, startEye)), startEye);
+                vec4 moveUp = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4((vec4){0.0,1.0,0.0,0.0}, startUp)), startUp);
+                moveEye.w = 1.0;
+                moveUp.w = 0.0;
+                model_view = look_at(moveEye, startAt, moveUp);
+            }
+            else
+            {
+                currentStep = 0;
+                currentState = 1;
+            }
+        }
+        else if (currentState == 1) //FLYING_AROUND
+        {
+            float maxStep = 2400.0;
+            if (currentStep <= maxStep)
+            {
+                float alpha = (currentStep/maxStep);
+
+                float radius = sqrt(50);
+
+                float x = radius * cos((5*M_PI)/4+(2*M_PI)*(currentStep/maxStep));
+                float z = radius * sin((5*M_PI)/4+(2*M_PI)*(currentStep/maxStep));
+
+                model_view = look_at((vec4){x, startEye.y, z, 1.0}, startAt, (vec4){0.0,1.0,0.0,0.0});
+            }
+            else
+            {
+                currentStep = 0;
+                currentState = 2;
+            }
+        }
+        else if (currentState == 2) //FLYING_DOWN
+        {
+            float maxStep = 800.0;
+            if (currentStep <= maxStep)
+            {
+                float alpha = (currentStep/maxStep);
+                vec4 eyeGoal = {-4.5,0.0,-3.5,1.0};
+                vec4 moveEye = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4(eyeGoal, (vec4){-5.0,startEye.y,-5.0,1.0})), (vec4){-5.0,startEye.y,-5.0,1.0});
+                vec4 atGoal = eyeGoal;
+                atGoal.x += 5;
+                vec4 moveAt = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4(atGoal, startAt)), startAt);
+                moveEye.w = 1.0;
+                moveAt.w = 1.0;
+
+                model_view = look_at(moveEye, moveAt, (vec4){0.0,1.0,0.0,0.0});
+            }
+            else
+            {
+                currentStep = 0;
+                currentState = 3;
+            }
+        }
+        else if (currentState == 3) //WARK_FORWARD
+        {
+            float maxStep = 800.0;
+            if (currentStep <= maxStep)
+            {
+
+            }
+        }
+        else if (currentState == 4) //TURN_LEFT
+        {
+            float maxStep = 800.0;
+            if (currentStep <= maxStep)
+            {
+
+            }
+        }
+        else if (currentState == 5) //TURN_RIGHT
+        {
+            float maxStep = 800.0;
+            if (currentStep <= maxStep)
+            {
+
+            }
+        }
+        glutPostRedisplay();
     }
 }
 
@@ -519,11 +612,11 @@ void init(void)
     maze[mazeRows-1][mazeCols-1].e = 1; //Open the end gate
     mazeInfoBlock info = getMazeInfo();// Returns info we will use in generating the maze
     mazeSettings settings;
-    settings.inset = 1;//0.22;
-    settings.cellSideSize = 1;//(2 - settings.inset*2) / mazeCols; 
+    settings.inset = 1;
+    settings.cellSideSize = 1;
     settings.wallThick = settings.cellSideSize * .1;
-    settings.wallHeight = 1;//.5;
-    settings.startPoint = -4;//-1+settings.inset;
+    settings.wallHeight = 1;
+    settings.startPoint = -4;
 
     num_vertices = 6 + info.walls*6*6 + info.poles*6*6;
 
@@ -558,8 +651,8 @@ void init(void)
     texture(tex_coords, 6, 6+info.walls*6*6, 1);
     texture(tex_coords, 6+info.walls*6*6, 6+info.walls*6*6+info.poles*6*6, 2);
 
-    model_view = look_at((vec4){0.0,6,0.0,1.0},(vec4){0.0,-.5,0,1.0},(vec4){0,0,-1,0});
-    projection = frustum(-1.0, 1.0, -1.0, 1.0, -1.0, -100.0);
+    model_view = look_at(startEye,startAt,startUp);
+    projection = frustum(-1.0, 1.0, -1.0, 1.0, -1, -30.0);
     //Landon Higinbotham's code ends
 
     int width = 800;
@@ -637,6 +730,13 @@ void display(void)
 
 void keyboard(unsigned char key, int mousex, int mousey)
 {
+    if (key == ' ') //Spacebar
+    {
+        currentState = 0;
+        currentStep = 0;
+        isAnimating = 1;
+    }
+
     if(key == 'q')
 	exit(0);
 }
