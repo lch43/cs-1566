@@ -944,16 +944,16 @@ void init(void)
 
     //Ground (flat-plane) Notes are from top view
     float yOffset = -0.5;
-    vertices[0] = (vec4){-5.0,yOffset,-5.0,1.0}; //Top left
-    vertices[1] = (vec4){-5.0,yOffset,5.0,1.0}; //Bottom left
-    vertices[2] = (vec4){5.0,yOffset,-5.0,1.0}; //Top right
+    vertices[0] = (vec4){-6.0,yOffset,-6.0,1.0}; //Top left
+    vertices[1] = (vec4){-6.0,yOffset,6.0,1.0}; //Bottom left
+    vertices[2] = (vec4){6.0,yOffset,-6.0,1.0}; //Top right
     tex_coords[0] = (vec2){0.0,0.5};
     tex_coords[1] = (vec2){0.0,1};
     tex_coords[2] = (vec2){0.5,0.5};
 
-    vertices[3] = (vec4){-5.0,yOffset,5.0,1.0}; //Bottom left
-    vertices[4] = (vec4){5.0,yOffset,5.0,1.0}; //Bottom right
-    vertices[5] = (vec4){5.0,yOffset,-5.0,1.0}; //Top Right
+    vertices[3] = (vec4){-6.0,yOffset,6.0,1.0}; //Bottom left
+    vertices[4] = (vec4){6.0,yOffset,6.0,1.0}; //Bottom right
+    vertices[5] = (vec4){6.0,yOffset,-6.0,1.0}; //Top Right
     tex_coords[3] = (vec2){0.0,1};
     tex_coords[4] = (vec2){0.5,1};
     tex_coords[5] = (vec2){0.5,0.5};
