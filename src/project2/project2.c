@@ -22,12 +22,14 @@ typedef struct
 
 typedef struct {
     float left; float right; float bottom; float top; float near; float far;
-} projectionArgs;
+} projectionArgs; //Struct used to help keep args tidy
 
+//Camera starting view model settings.
 vec4 startEye = {0.0,6,0.0,1.0};
 vec4 startAt = {0.0,-.5,0,1.0};
 vec4 startUp = {0,0,-1,0};
 
+//Arguments to create the frustum for outside and inside the maze.
 projectionArgs frustumOutside = {-1.0, 1.0, -1.0, 1.0, -1, -15.0};
 projectionArgs frustumInside = {-.2, .2, -.2, .2, -0.1, -15.0};
 
@@ -53,7 +55,7 @@ typedef struct
     int s;
     int w;
     int visited;
-} mazeBlock;
+} mazeBlock; //Maze Data Structure
 
 #define mazeRows 8
 #define mazeCols 8
@@ -64,7 +66,7 @@ typedef struct
     int poles;
     int wallArray[2* mazeCols* mazeRows+ mazeCols + mazeRows];
     int poleArray[(mazeCols+1)*(mazeRows+1)];
-} mazeInfoBlock;
+} mazeInfoBlock; //Info about the maze
 
 typedef struct
 {
@@ -73,7 +75,7 @@ typedef struct
     float wallThick;
     float wallHeight;
     float startPoint;
-} mazeSettings;
+} mazeSettings; //Maze settings
 
 typedef struct
 {
@@ -86,7 +88,7 @@ typedef struct
     vec4 bottomBackRight;
     vec4 bottomFrontLeft;
     vec4 bottomFrontRight;
-} cube;
+} cube; //To assist with making rectangular prisms
 
 mazeBlock maze[8][8];
 int solution[64]; //best Solution
@@ -103,7 +105,7 @@ void recursiveMazeBuilder(int row, int col)
         return;
     }
 
-    for (i=0; i<4; i++)
+    for (i=0; i<4; i++) //Recursively randomly decide directions to go to open walls of the maze.
     {
         int randomInt = rand() % (4-i);
         int choice = directions[randomInt];
@@ -254,7 +256,7 @@ void printMaze()
     }
 }
 
-mazeInfoBlock getMazeInfo()
+mazeInfoBlock getMazeInfo() //Gets info on how many poles, walls, and puts their positions into arrays.
 {
     mazeInfoBlock block = {0,0};
 
@@ -312,7 +314,7 @@ mazeInfoBlock getMazeInfo()
     return block;
 }
 
-void createBox(vec4 * vertices, cube cube, int offset)
+void createBox(vec4 * vertices, cube cube, int offset) //Function to create a rectangular prism
 {
     vec4 topBackLeft = cube.topBackLeft;
     vec4 topBackRight = cube.topBackRight;
@@ -379,7 +381,7 @@ void createBox(vec4 * vertices, cube cube, int offset)
     vertices[offset+35] = bottomBackRight;
 }
 
-void texture(vec2 * tex_coords, int startIndex, int endIndex, int texture)
+void texture(vec2 * tex_coords, int startIndex, int endIndex, int texture) //Function used to texture a range of vertices.
 {
     int i=0;
     vec2 tex0;
@@ -541,14 +543,11 @@ typedef enum
 } state;
 
 int isAnimating = 0;
-int currentStep = 0;
-state currentState = 1;
-int initialSolutionIndex = 0;
-int bestSolutionIndex = 0;
-int initialSolutionDone = 0;
-
-//pathTaken <-Original path taken
-//solution <-Best solution
+int currentStep = 0; //What step of animation are we on
+state currentState = 1; //What animation is going on
+int initialSolutionIndex = 0; //Index of position in sloppy solve
+int bestSolutionIndex = 0; //Index in positon of best case solve
+int initialSolutionDone = 0; //Stage on the sloppy solve.
 
 vec4 refEye = {};
 vec4 refAt = {};
@@ -574,6 +573,7 @@ void idle(void)
             float maxStep = 800.0;
             if (currentStep <= maxStep)
             {
+                //Use alpha to transition the eye and up vector from one to another
                 float alpha = (currentStep/maxStep);
                 vec4 moveEye = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4((vec4){-5.0,startEye.y,-5.0,1.0}, startEye)), startEye);
                 vec4 moveUp = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4((vec4){0.0,1.0,0.0,0.0}, startUp)), startUp);
@@ -595,7 +595,7 @@ void idle(void)
             else
             {
                 currentStep = 0;
-                currentState = 1;
+                currentState = 1; //Go to fly around animation
             }
         }
         else if (currentState == 1) //FLYING_AROUND
@@ -607,6 +607,7 @@ void idle(void)
 
                 float radius = sqrt(50);
 
+                //Determine x and y given alpha
                 float x = radius * cos((5*M_PI)/4-(2*M_PI)*(alpha));
                 float z = radius * sin((5*M_PI)/4-(2*M_PI)*(alpha));
                 currEye = (vec4){x, startEye.y, z, 1.0};
@@ -632,6 +633,7 @@ void idle(void)
             float maxStep = 800.0;
             if (currentStep <= maxStep)
             {
+                //Transition the eye and at
                 float alpha = (currentStep/maxStep);
                 vec4 eyeGoal = {-4.5,0.5,-3.5,1.0};
                 vec4 moveEye = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4(eyeGoal, (vec4){-5.0,startEye.y,-5.0,1.0})), (vec4){-5.0,startEye.y,-5.0,1.0});
@@ -646,6 +648,7 @@ void idle(void)
                 currUp = (vec4){0.0,1.0,0.0,0.0};
                 model_view = look_at(moveEye, moveAt, currUp);
 
+                //Transition the frustum
                 projectionArgs newProjection = {
                     (frustumInside.left-frustumOutside.left)*alpha + frustumOutside.left,
                     (frustumInside.right-frustumOutside.right)*alpha + frustumOutside.right,
@@ -677,6 +680,7 @@ void idle(void)
             {
                 float alpha = (currentStep/maxStep);
                 vec4 eyeGoal = refEye;
+                //Figure out where we need to move
                 if (direction == 0)
                 {
                     eyeGoal.z -= 1;
@@ -771,7 +775,7 @@ void idle(void)
                             direction = 3;
                         }
                     }
-                    else if(initialSolutionDone == 0)
+                    else if(initialSolutionDone == 0) //Step out of the maze
                     {
                         if (direction == 0 || direction == 3)
                         {
@@ -785,7 +789,7 @@ void idle(void)
                         initialSolutionDone++;
                         direction = 1;
                     }
-                    else if (initialSolutionDone == 1 && bestSolutionIndex == 0)
+                    else if (initialSolutionDone == 1 && bestSolutionIndex == 0) //Turn around and head back in maze
                     {
                         direction = 3;
                         int i = 0;
@@ -795,9 +799,8 @@ void idle(void)
                         currentState = 4;
                         currentStep = 0;
                     }
-                    else if (initialSolutionDone == 2 && bestSolutionIndex == 0)
+                    else if (initialSolutionDone == 2 && bestSolutionIndex == 0) //Once the best solution is done step out of the maze
                     {
-                        direction = 3;
                         if (direction == 0 || direction == 1)
                         {
                             currentState = 4;
@@ -806,6 +809,7 @@ void idle(void)
                         {
                             currentState = 5;
                         }
+                        direction = 3;
                         currentStep = 0;
                         initialSolutionDone++;
                     }
@@ -827,6 +831,7 @@ void idle(void)
                 }
                 float alpha = (currentStep/maxStep);
                 vec4 atGoal = refEye;
+                //Set to 50 so we don't have any conflict with stepping on the at point.
                 if (facingDirection == 0)
                 {
                     atGoal.z -= 50;
@@ -875,6 +880,7 @@ void idle(void)
 
                 float alpha = (currentStep/maxStep);
                 vec4 atGoal = refEye;
+                //Set to 50 so we don't have any conflict with stepping on the at point.
                 if (facingDirection == 0)
                 {
                     atGoal.z -= 50;
@@ -930,6 +936,8 @@ void init(void)
     printMaze();
 
     mazeInfoBlock info = getMazeInfo();// Returns info we will use in generating the maze
+
+    //Set up some settings of the maze
     mazeSettings settings;
     settings.inset = 1;
     settings.cellSideSize = 1;
@@ -965,8 +973,9 @@ void init(void)
 
     vertOffset += info.walls*6*6;
 
-    createPoles(vertices, info, vertOffset, yOffset, settings);
+    createPoles(vertices, info, vertOffset, yOffset, settings); //Add poles to the vertices array
 
+    //Texture poles and walls
     texture(tex_coords, 6, 6+info.walls*6*6, 1);
     texture(tex_coords, 6+info.walls*6*6, 6+info.walls*6*6+info.poles*6*6, 2);
 
@@ -1049,12 +1058,14 @@ void display(void)
 
 void keyboard(unsigned char key, int mousex, int mousey)
 {
-    if (key == ' ') //Spacebar
+    /*Landon Higinbotham's code starts here*/
+    if (key == ' ') //Animate on space press.
     {
         currentState = 0;
         currentStep = 0;
         isAnimating = 1;
     }
+    /*Landon Higinbotham's code ends here*/
 
     if(key == 'q')
 	exit(0);
