@@ -25,7 +25,7 @@ typedef struct {
 } projectionArgs; //Struct used to help keep args tidy
 
 //Camera starting view model settings.
-vec4 startEye = {0.0,3,0.0,1.0};
+vec4 startEye = {0.0,2,0.0,1.0};
 vec4 startAt = {0.0,-.5,0,1.0};
 vec4 startUp = {0,0,-1,0};
 
@@ -276,9 +276,79 @@ int createBall(vec4 * vertices, vec2 * tex_coords, ball * ball, settings setting
 }
 
 int num_vertices = 0;
-ball poolBalls[1];
+ball poolBalls[16];
 int tableVertices = 0;
 int verticesPerBall = 0;
+
+int addPoolBalls(vec4 * vertices, vec2 * tex_coords,settings Settings,int vertOffset)
+{
+    poolBalls[0].radius = .1;
+    poolBalls[0].center = (vec4){.1*3, 0.1, .1*3, 1.0};
+    poolBalls[0].textureId = 0;
+    vertOffset = createBall(vertices,tex_coords,&poolBalls[0], Settings, vertOffset);
+    poolBalls[1].radius = .1;
+    poolBalls[1].center = (vec4){-.1*3, 0.1, -.1*3, 1.0};
+    poolBalls[1].textureId = 1;
+    vertOffset = createBall(vertices,tex_coords,&poolBalls[1], Settings, vertOffset);
+    poolBalls[2].radius = .1;
+    poolBalls[2].center = (vec4){-.1*1, 0.1, -.1*3, 1.0};
+    poolBalls[2].textureId = 2;
+    vertOffset = createBall(vertices,tex_coords,&poolBalls[2], Settings, vertOffset);
+    poolBalls[3].radius = .1;
+    poolBalls[3].center = (vec4){.1*1, 0.1, -.1*3, 1.0};
+    poolBalls[3].textureId = 3;
+    vertOffset = createBall(vertices,tex_coords,&poolBalls[3], Settings, vertOffset);
+    poolBalls[4].radius = .1;
+    poolBalls[4].center = (vec4){.1*3, 0.1, -.1*3, 1.0};
+    poolBalls[4].textureId = 4;
+    vertOffset = createBall(vertices,tex_coords,&poolBalls[4], Settings, vertOffset);
+    poolBalls[5].radius = .1;
+    poolBalls[5].center = (vec4){-.1*3, 0.1, -.1*1, 1.0};
+    poolBalls[5].textureId = 5;
+    vertOffset = createBall(vertices,tex_coords,&poolBalls[5], Settings, vertOffset);
+    poolBalls[6].radius = .1;
+    poolBalls[6].center = (vec4){-.1*1, 0.1, -.1*1, 1.0};
+    poolBalls[6].textureId = 6;
+    vertOffset = createBall(vertices,tex_coords,&poolBalls[6], Settings, vertOffset);
+    poolBalls[7].radius = .1;
+    poolBalls[7].center = (vec4){.1*1, 0.1, -.1*1, 1.0};
+    poolBalls[7].textureId = 7;
+    vertOffset = createBall(vertices,tex_coords,&poolBalls[7], Settings, vertOffset);
+    poolBalls[8].radius = .1;
+    poolBalls[8].center = (vec4){.1*3, 0.1, -.1*1, 1.0};
+    poolBalls[8].textureId = 8;
+    vertOffset = createBall(vertices,tex_coords,&poolBalls[8], Settings, vertOffset);
+    poolBalls[9].radius = .1;
+    poolBalls[9].center = (vec4){-.1*3, 0.1, .1*1, 1.0};
+    poolBalls[9].textureId = 9;
+    vertOffset = createBall(vertices,tex_coords,&poolBalls[9], Settings, vertOffset);
+    poolBalls[10].radius = .1;
+    poolBalls[10].center = (vec4){-.1*1, 0.1, .1*1, 1.0};
+    poolBalls[10].textureId = 10;
+    vertOffset = createBall(vertices,tex_coords,&poolBalls[10], Settings, vertOffset);
+    poolBalls[11].radius = .1;
+    poolBalls[11].center = (vec4){.1*1, 0.1, .1*1, 1.0};
+    poolBalls[11].textureId = 11;
+    vertOffset = createBall(vertices,tex_coords,&poolBalls[11], Settings, vertOffset);
+    poolBalls[12].radius = .1;
+    poolBalls[12].center = (vec4){.1*3, 0.1, .1*1, 1.0};
+    poolBalls[12].textureId = 12;
+    vertOffset = createBall(vertices,tex_coords,&poolBalls[12], Settings, vertOffset);
+    poolBalls[13].radius = .1;
+    poolBalls[13].center = (vec4){-.1*3, 0.1, .1*3, 1.0};
+    poolBalls[13].textureId = 13;
+    vertOffset = createBall(vertices,tex_coords,&poolBalls[13], Settings, vertOffset);
+    poolBalls[14].radius = .1;
+    poolBalls[14].center = (vec4){-.1*1, 0.1, .1*3, 1.0};
+    poolBalls[14].textureId = 14;
+    vertOffset = createBall(vertices,tex_coords,&poolBalls[14], Settings, vertOffset);
+    poolBalls[15].radius = .1;
+    poolBalls[15].center = (vec4){.1*1, 0.1, .1*3, 1.0};
+    poolBalls[15].textureId = 15;
+    vertOffset = createBall(vertices,tex_coords,&poolBalls[15], Settings, vertOffset);
+
+    return vertOffset;
+}
 
 //Landon Higinbotham's code ends
 
@@ -291,7 +361,7 @@ void init(void)
     Settings.tableRows = 5;
     Settings.ballCols = 10;
     Settings.ballRows = 10;
-    Settings.numBalls = 1;
+    Settings.numBalls = 16;
 
     tableVertices = Settings.tableColumns * Settings.tableRows * 6;
     verticesPerBall = (2 * Settings.ballCols*3 + Settings.ballRows*Settings.ballCols*6);
@@ -305,10 +375,7 @@ void init(void)
 
     vertOffset += createTable(vertices,colors, Settings, vertOffset);
 
-    poolBalls[0].radius = .5;
-    poolBalls[0].center = (vec4){0.0,1.0,0.0,1.0};
-    poolBalls[0].textureId = 0;
-    vertOffset += createBall(vertices,tex_coords,&poolBalls[0], Settings, vertOffset);
+    vertOffset = addPoolBalls(vertices,tex_coords,Settings, vertOffset);
 
     model_view = look_at(startEye,startAt,startUp);
     projection = frustum(frustumOutside.left, frustumOutside.right, frustumOutside.bottom, frustumOutside.top, frustumOutside.near, frustumOutside.far);
@@ -390,7 +457,52 @@ void display(void)
     glDrawArrays(GL_TRIANGLES, 0, tableVertices);
     //Draw cue ball
     glUniform1i(useTexture, 1);
-    glDrawArrays(GL_TRIANGLES, tableVertices, verticesPerBall);
+    glDrawArrays(GL_TRIANGLES, poolBalls[0].startIndex, poolBalls[0].endIndex);
+    //Draw ball 1
+    glUniform1i(useTexture, 1);
+    glDrawArrays(GL_TRIANGLES, poolBalls[1].startIndex, poolBalls[1].endIndex);
+    //Draw ball 2
+    glUniform1i(useTexture, 1);
+    glDrawArrays(GL_TRIANGLES, poolBalls[2].startIndex, poolBalls[2].endIndex);
+    //Draw ball 3
+    glUniform1i(useTexture, 1);
+    glDrawArrays(GL_TRIANGLES, poolBalls[3].startIndex, poolBalls[3].endIndex);
+    //Draw ball 1
+    glUniform1i(useTexture, 1);
+    glDrawArrays(GL_TRIANGLES, poolBalls[4].startIndex, poolBalls[4].endIndex);
+    //Draw ball 1
+    glUniform1i(useTexture, 1);
+    glDrawArrays(GL_TRIANGLES, poolBalls[5].startIndex, poolBalls[5].endIndex);
+    //Draw ball 1
+    glUniform1i(useTexture, 1);
+    glDrawArrays(GL_TRIANGLES, poolBalls[6].startIndex, poolBalls[6].endIndex);
+    //Draw ball 1
+    glUniform1i(useTexture, 1);
+    glDrawArrays(GL_TRIANGLES, poolBalls[7].startIndex, poolBalls[7].endIndex);
+    //Draw ball 1
+    glUniform1i(useTexture, 1);
+    glDrawArrays(GL_TRIANGLES, poolBalls[8].startIndex, poolBalls[8].endIndex);
+    //Draw ball 1
+    glUniform1i(useTexture, 1);
+    glDrawArrays(GL_TRIANGLES, poolBalls[9].startIndex, poolBalls[9].endIndex);
+    //Draw ball 1
+    glUniform1i(useTexture, 1);
+    glDrawArrays(GL_TRIANGLES, poolBalls[10].startIndex, poolBalls[10].endIndex);
+    //Draw ball 1
+    glUniform1i(useTexture, 1);
+    glDrawArrays(GL_TRIANGLES, poolBalls[11].startIndex, poolBalls[11].endIndex);
+    //Draw ball 1
+    glUniform1i(useTexture, 1);
+    glDrawArrays(GL_TRIANGLES, poolBalls[12].startIndex, poolBalls[12].endIndex);
+    //Draw ball 1
+    glUniform1i(useTexture, 1);
+    glDrawArrays(GL_TRIANGLES, poolBalls[13].startIndex, poolBalls[13].endIndex);
+    //Draw ball 1
+    glUniform1i(useTexture, 1);
+    glDrawArrays(GL_TRIANGLES, poolBalls[14].startIndex, poolBalls[14].endIndex);
+    //Draw ball 1
+    glUniform1i(useTexture, 1);
+    glDrawArrays(GL_TRIANGLES, poolBalls[15].startIndex, poolBalls[15].endIndex);
     /*Landon Higinbotham's code ends here*/
     glutSwapBuffers();
 }
