@@ -25,13 +25,17 @@ typedef struct {
 } projectionArgs; //Struct used to help keep args tidy
 
 //Camera starting view model settings.
-vec4 startEye = {0.0,3.2,0,1.0};
-vec4 startAt = {0.0,-.5,0,1.0};
-vec4 startUp = {0,0,-1,0};
+vec4 startEye = {0.0,2.0,5.0,1.0};
+vec4 startAt = {0.0,0.0,0,1.0};
+vec4 startUp = {0,1.0,0,0};
 
-//Arguments to create the frustum for outside and inside the maze.
-projectionArgs frustumOutside = {-1.0, 1.0, -1.0, 1.0, -1, -15.0};
-projectionArgs frustumInside = {-.2, .2, -.2, .2, -0.1, -15.0};
+//Arguments to create the frustum for the starting view
+projectionArgs startFrustum = {-.1, .1, -.1, .1, -.5, -20.0};
+
+//The lookAt that can be modified.
+vec4 lookEye;
+vec4 lookAt;
+vec4 lookUp;
 
 GLuint model_view_location;
 mat4 model_view = {
@@ -77,6 +81,36 @@ typedef struct
     int ballCols;
 } settings;
 
+vec4 moveEye(double x, double y, double d)
+{
+    double angle = 0;
+    double distance = sqrt(pow(lookEye.x-lookAt.x,2) + pow(lookEye.y-lookAt.y,2) + pow(lookEye.z-lookAt.z,2));
+    vec4 consider = lookEye;
+    if (x != 0)
+    {
+        //This below DOES NOT WORK
+        // double considerRadius = sqrt(pow(consider.x-lookAt.x,2) + pow(consider.z-lookAt.z,2));
+        // angle = x/distance;
+        // //X is X and Z is Y
+        // double firstAngle = atan2(consider.z, consider.y);
+        // consider.x = cos(angle+firstAngle)*considerRadius;
+        // consider.z = sin(angle+firstAngle)*considerRadius;
+    }
+    if (y != 0)
+    {
+        angle = y/distance;
+    }
+    if (distance+d <.1)
+    {
+        d = 0;
+    }
+    vec4 vector = v4_sub_v4(consider, lookAt);
+    vector.w = 0;
+    vector = normalize_v4(vector);
+
+    return scalar_mult_v4(distance+d, vector);
+}
+
 int createTable(vec4 * vertices, vec4 * colors, settings settings, int vertOffset)
 {
     int rows = settings.tableRows;
@@ -113,11 +147,8 @@ int createTable(vec4 * vertices, vec4 * colors, settings settings, int vertOffse
     return vertOffset;
 }
 
-int createBall(vec4 * vertices, vec2 * tex_coords, ball * ball, settings settings, int vertOffset)
+int createBall(vec4 * vertices, vec2 * tex_coords, vec4 * colors, ball * ball, settings settings, int vertOffset, int isLight)
 {
-
-    //ball->ballVariable = Blank
-    //to call you do method(&ball)
     int startOffset = vertOffset;
     ball->startIndex = vertOffset;
 
@@ -139,10 +170,21 @@ int createBall(vec4 * vertices, vec2 * tex_coords, ball * ball, settings setting
                 vertices[vertOffset] = ball->center;
                 vertices[vertOffset].y += ball->radius;
                 vertOffset++;
-                vertices[vertOffset] = (vec4){rowRadius *sin(2* M_PI * j/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * j/settings.ballCols) + ball->center.z, 1.0};
-                vertOffset++;
-                vertices[vertOffset] = (vec4){rowRadius *sin(2* M_PI * (j+1)/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * (j+1)/settings.ballCols) + ball->center.z, 1.0};
-                vertOffset++;
+                if (isLight == 0)
+                {
+                    vertices[vertOffset] = (vec4){rowRadius *sin(2* M_PI * j/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * j/settings.ballCols) + ball->center.z, 1.0};
+                    vertOffset++;
+                    vertices[vertOffset] = (vec4){rowRadius *sin(2* M_PI * (j+1)/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * (j+1)/settings.ballCols) + ball->center.z, 1.0};
+                    vertOffset++;
+                }
+                else
+                {
+                    vertices[vertOffset] = (vec4){rowRadius *sin(2* M_PI * (j+1)/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * (j+1)/settings.ballCols) + ball->center.z, 1.0};
+                    vertOffset++;
+                    vertices[vertOffset] = (vec4){rowRadius *sin(2* M_PI * j/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * j/settings.ballCols) + ball->center.z, 1.0};
+                    vertOffset++;
+                }
+                
             }
             else //Join to the previous row.
             {
@@ -157,19 +199,38 @@ int createBall(vec4 * vertices, vec2 * tex_coords, ball * ball, settings setting
                 vec4 bottomLeft = (vec4){rowRadius *sin(2*M_PI * j/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * j/settings.ballCols) + ball->center.z, 1.0};
                 vec4 bottomRight = (vec4){rowRadius *sin(2*M_PI * (j+1)/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * (j+1)/settings.ballCols) + ball->center.z, 1.0};
 
-                vertices[vertOffset] = topLeft;
-                vertOffset++;
-                vertices[vertOffset] = bottomLeft;
-                vertOffset++;
-                vertices[vertOffset] = bottomRight;
-                vertOffset++;
+                if (isLight == 0)
+                {
+                    vertices[vertOffset] = topLeft;
+                    vertOffset++;
+                    vertices[vertOffset] = bottomLeft;
+                    vertOffset++;
+                    vertices[vertOffset] = bottomRight;
+                    vertOffset++;
 
-                vertices[vertOffset] = topLeft;
-                vertOffset++;
-                vertices[vertOffset] = bottomRight;
-                vertOffset++;
-                vertices[vertOffset] = topRight;
-                vertOffset++;
+                    vertices[vertOffset] = topLeft;
+                    vertOffset++;
+                    vertices[vertOffset] = bottomRight;
+                    vertOffset++;
+                    vertices[vertOffset] = topRight;
+                    vertOffset++;
+                }
+                else
+                {
+                    vertices[vertOffset] = topLeft;
+                    vertOffset++;
+                    vertices[vertOffset] = bottomRight;
+                    vertOffset++;
+                    vertices[vertOffset] = bottomLeft;
+                    vertOffset++;
+
+                    vertices[vertOffset] = topLeft;
+                    vertOffset++;
+                    vertices[vertOffset] = topRight;
+                    vertOffset++;
+                    vertices[vertOffset] = bottomRight;
+                    vertOffset++;
+                }
             }
             
             if (i == settings.ballRows-1)
@@ -177,10 +238,20 @@ int createBall(vec4 * vertices, vec2 * tex_coords, ball * ball, settings setting
                 vertices[vertOffset] = ball->center;
                 vertices[vertOffset].y -= ball->radius;
                 vertOffset++;
-                vertices[vertOffset] = (vec4){rowRadius *sin(2*M_PI * (j+1)/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * (j+1)/settings.ballCols) + ball->center.z, 1.0};
-                vertOffset++;
-                vertices[vertOffset] = (vec4){rowRadius *sin(2*M_PI * j/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * j/settings.ballCols) + ball->center.z, 1.0};
-                vertOffset++;
+                if (isLight == 0)
+                {
+                    vertices[vertOffset] = (vec4){rowRadius *sin(2*M_PI * (j+1)/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * (j+1)/settings.ballCols) + ball->center.z, 1.0};
+                    vertOffset++;
+                    vertices[vertOffset] = (vec4){rowRadius *sin(2*M_PI * j/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * j/settings.ballCols) + ball->center.z, 1.0};
+                    vertOffset++;
+                }
+                else
+                {
+                    vertices[vertOffset] = (vec4){rowRadius *sin(2*M_PI * j/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * j/settings.ballCols) + ball->center.z, 1.0};
+                    vertOffset++;
+                    vertices[vertOffset] = (vec4){rowRadius *sin(2*M_PI * (j+1)/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * (j+1)/settings.ballCols) + ball->center.z, 1.0};
+                    vertOffset++;
+                }
             }
         }
     }
@@ -214,16 +285,21 @@ int createBall(vec4 * vertices, vec2 * tex_coords, ball * ball, settings setting
         float x = ((vertices[i].x - ball->center.x + ball->radius) / (2*ball->radius));
         float z = ((vertices[i].z - ball->center.z + ball->radius) / (2*ball->radius));
         tex_coords[i] = (vec2){x * (bottomRight.x-topLeft.x) + topLeft.x, z * (bottomRight.y-topLeft.y) + topLeft.y};
+        if (isLight == 1)
+        {
+            colors[i] = (vec4){1,1,1,1};
+        }
     }
     return vertOffset;
 }
 
 int num_vertices = 0;
 ball poolBalls[16];
+ball light;
 int tableVertices = 0;
 int verticesPerBall = 0;
 
-int addPoolBalls(vec4 * vertices, vec2 * tex_coords,settings Settings,int vertOffset)
+int addPoolBalls(vec4 * vertices, vec2 * tex_coords, vec4 * colors, settings Settings,int vertOffset)
 {
     int i=0;
     for (i=0;i<16;i++)
@@ -242,7 +318,7 @@ int addPoolBalls(vec4 * vertices, vec2 * tex_coords,settings Settings,int vertOf
             poolBalls[i].ctm = translate_mat4(.1*(-3 + 2*col), 0, .1*(-3 + 2*row));
             poolBalls[i].center = (vec4){0, 0.1, 0, 1.0};
         }
-        vertOffset = createBall(vertices,tex_coords,&poolBalls[i], Settings, vertOffset);
+        vertOffset = createBall(vertices,tex_coords, colors, &poolBalls[i], Settings, vertOffset, 0);
     }
 
     return vertOffset;
@@ -264,7 +340,7 @@ void init(void)
     tableVertices = Settings.tableColumns * Settings.tableRows * 6;
     verticesPerBall = (2 * Settings.ballCols*3 + Settings.ballRows*(Settings.ballCols-1)*6);
 
-    num_vertices = tableVertices + verticesPerBall * Settings.numBalls;
+    num_vertices = tableVertices + verticesPerBall * Settings.numBalls + verticesPerBall;
     vec4 vertices[num_vertices];
     vec4 colors[num_vertices];
     vec2 tex_coords[num_vertices];
@@ -273,10 +349,18 @@ void init(void)
 
     vertOffset += createTable(vertices,colors, Settings, vertOffset);
 
-    vertOffset = addPoolBalls(vertices,tex_coords,Settings, vertOffset);
+    vertOffset = addPoolBalls(vertices,tex_coords, colors, Settings, vertOffset);
 
-    model_view = look_at(startEye,startAt,startUp);
-    projection = frustum(frustumOutside.left, frustumOutside.right, frustumOutside.bottom, frustumOutside.top, frustumOutside.near, frustumOutside.far);
+    light.center = (vec4){0.0,0.1,0.0,1.0};
+    light.radius = .05;
+    light.ctm = translate_mat4(0,.9,0);
+    vertOffset = createBall(vertices, tex_coords, colors, &light, Settings, vertOffset, 1);
+
+    lookEye = startEye;
+    lookAt = startAt;
+    lookUp = startUp;
+    model_view = look_at(lookEye,lookAt,lookUp);
+    projection = frustum(startFrustum.left, startFrustum.right, startFrustum.bottom, startFrustum.top, startFrustum.near, startFrustum.far);
     //Landon Higinbotham's code ends
 
     int width = 512;
@@ -349,6 +433,7 @@ void display(void)
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     /*Landon Higinbotham's code starts here*/
+    model_view = look_at(lookEye, lookAt, lookUp);
     glUniformMatrix4fv(ctm_location, 1, GL_FALSE, (GLfloat *) &ctm);
     glUniformMatrix4fv(model_view_location, 1, GL_FALSE, (GLfloat *) &model_view);
     glUniformMatrix4fv(projection_location, 1, GL_FALSE, (GLfloat *) &projection);
@@ -363,6 +448,9 @@ void display(void)
         glUniform1i(useTexture, 1);
         glDrawArrays(GL_TRIANGLES, poolBalls[i].startIndex, poolBalls[i].endIndex-poolBalls[i].startIndex);
     }
+        glUniformMatrix4fv(ctm_location, 1, GL_FALSE, (GLfloat *) &light.ctm);
+        glUniform1i(useTexture, 0);
+        glDrawArrays(GL_TRIANGLES, light.startIndex, light.endIndex-light.startIndex);
     /*Landon Higinbotham's code ends here*/
     glutSwapBuffers();
 }
@@ -404,12 +492,16 @@ void idle(void)
                     if (ball != 0)
                     {
                         tempMax = (sqrt(pow(0-poolBalls[ball].ctm.w.x, 2) +
-                        pow((-3.0+((ball-1)*.2))-poolBalls[ball].ctm.w.z,2))) * 200;//For each unit take up 100 frames.
+                        pow((-3.0+((ball-1)*.2))-poolBalls[ball].ctm.w.z,2))) * 200;//For each unit take up 200 frames.
                     }
                     else if (ball == 0)
                     {
                         tempMax = (sqrt(pow(0-poolBalls[ball].ctm.w.x, 2) +
-                        pow(0-poolBalls[ball].ctm.w.z,2))) * 200;//For each unit take up 100 frames.
+                        pow(0-poolBalls[ball].ctm.w.z,2))) * 200;//For each unit take up 200 frames.
+                    }
+                    if (tempMax == 0)
+                    {
+                        tempMax = -1;
                     }
                 }
                 if (currentStep<=tempMax)
@@ -418,11 +510,11 @@ void idle(void)
                     vec4 goal;
                     if (ball != 0)
                     {
-                        goal = (vec4){0.0,0.1,(-3.0+((ball-1)*.2)),1.0};
+                        goal = (vec4){0.0,0,(-3.0+((ball-1)*.2)),1.0};
                     }
                     else
                     {
-                        goal = (vec4){0.0,0.1,0.0,1.0};
+                        goal = (vec4){0.0,0,0.0,1.0};
                     }
                     
                     vec4 translation = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4(goal, ballOriginalSpot)), ballOriginalSpot);
@@ -438,14 +530,15 @@ void idle(void)
         else if (currentState == 1) //Orbit
         {
             int i=15;
-            if (currentStep == 15*3000) {currentStep = 0;};
+            if (currentStep == 15*1500) {currentStep = 0;};
             for (i=15;i>0;i--)
             {
                 float radius = -3+.2*(i-1);
-                float z = sin(M_PI/2 + (2*M_PI)*(currentStep*1.0/((16-i)*1000))) * radius;
-                float x = cos(M_PI/2 + (2*M_PI)*(currentStep*1.0/((16-i)*1000))) * radius;
-                poolBalls[i].ctm = translate_mat4(x, 0.1, z);
+                float z = sin(M_PI/2 - (2*M_PI)*(currentStep/1500*(i/15.0))) * radius;
+                float x = cos(M_PI/2 - (2*M_PI)*(currentStep/1500*(i/15.0))) * radius;
+                poolBalls[i].ctm = translate_mat4(x, 0, z);
             }
+            poolBalls[0].ctm = translate_mat4(0, 0, 0);
         }
         glutPostRedisplay();
         currentStep++;
@@ -459,8 +552,10 @@ void keyboard(unsigned char key, int mousex, int mousey)
     /*Landon Higinbotham's code starts here*/
     if (key == ' ') //Animate on space press.
     {
+        ballLineNum = 0;
         currentState = 0;
         currentStep = 0;
+        tempMax = -1;
         isAnimating = 1;
     }
 
@@ -470,9 +565,45 @@ void keyboard(unsigned char key, int mousex, int mousey)
         currentStep = 0;
         isAnimating = 1;
     }
+
+    if (key == 'w') //Animate on space press.
+    {
+        lookEye.y += 0.05;
+        glutPostRedisplay();
+    }
+
+    if (key == 's') //Animate on space press.
+    {
+        lookEye.y -= 0.05;
+        glutPostRedisplay();
+    }
+
+    if (key == 'a') //Animate on space press.
+    {
+        lookEye = moveEye(-.05,0,0);
+        glutPostRedisplay();
+    }
+
+    if (key == 'd') //Animate on space press.
+    {
+        lookEye = moveEye(.05,0,0);
+        glutPostRedisplay();
+    }
+
+    if (key == 'e') //Animate on space press.
+    {
+        lookEye = moveEye(0,0,-.05);
+        glutPostRedisplay();
+    }
+
+    if (key == 'q') //Animate on space press.
+    {
+        lookEye = moveEye(0,0,.05);
+        glutPostRedisplay();
+    }
     /*Landon Higinbotham's code ends here*/
 
-    if(key == 'q')
+    if(key == ']')
 	exit(0);
 }
 
