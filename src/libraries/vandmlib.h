@@ -76,6 +76,8 @@ mat4 ortho(float left, float right, float bottom, float top,float near, float fa
 
 mat4 frustum(float left, float right, float bottom, float top,float near, float far);
 
+mat4 identity();
+
 /*Helper functions that I would like to have just in case
 
 float sarrus(float a, float b, float c, float d, float e, float f, float g, float h, float i);

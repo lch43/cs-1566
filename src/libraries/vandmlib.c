@@ -299,3 +299,13 @@ mat4 frustum(float left, float right, float bottom, float top, float near, float
         (vec4){0.0,0.0,(-2*near*far)/(far-near),0.0}
     };
 }
+
+mat4 identity()
+{
+    return (mat4) {
+    (vec4) {1,0,0,0},
+    (vec4) {0,1,0,0},
+    (vec4) {0,0,1,0},
+    (vec4) {0,0,0,1},
+};
+}
