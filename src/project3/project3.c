@@ -29,6 +29,9 @@ vec4 startEye = {0.0,2.0,5.0,1.0};
 vec4 startAt = {0.0,0.0,0,1.0};
 vec4 startUp = {0,1.0,0,0};
 
+//Used to set which ball to follow
+int camMode = -1;
+
 //Arguments to create the frustum for the starting view
 projectionArgs startFrustum = {-.1, .1, -.1, .1, -.5, -20.0};
 
@@ -521,11 +524,16 @@ void idle(void)
                     vec4 translation = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4(goal, ballOriginalSpot)), ballOriginalSpot);
                     poolBalls[ball].ctm = translate_mat4(translation.x, translation.y, translation.z);
                 }
+                else if(ballLineNum == 16)
+                {
+                    ballLineNum++;
+                }
             }
             else
             {
                 currentStep = -1;
                 isAnimating = 0; //Stop the animation
+                currentState = 1;
             }
         }
         else if (currentState == 1) //Orbit
@@ -540,6 +548,41 @@ void idle(void)
                 poolBalls[i].ctm = translate_mat4(x, 0, z);
             }
             poolBalls[0].ctm = translate_mat4(0, 0, 0);
+            if (camMode >= 0)
+            {
+                i = camMode;
+                float radius = -3+.2*(i-1);
+                float zCurr = sin(M_PI/2 - (2*M_PI)*(currentStep/1500*(i/15.0))) * radius;
+                float xCurr = cos(M_PI/2 - (2*M_PI)*(currentStep/1500*(i/15.0))) * radius;
+                /*float zPrev = sin(M_PI/2 - (2*M_PI)*((currentStep-1)/1500*(i/15.0))) * radius;
+                float xPrev = cos(M_PI/2 - (2*M_PI)*((currentStep-1)/1500*(i/15.0))) * radius;
+                vec4 curr = {xCurr, 0.1, zCurr, 1.0};
+                vec4 prev = {xPrev, 0.1, zPrev, 1.0};
+                vec4 vector = v4_sub_v4(prev, curr);
+                vector.w = 0;
+                vector = normalize_v4(vector);
+                lookEye = scalar_mult_v4(1, vector);
+                lookEye.y += 1;
+                lookAt = curr;*/
+                //Take current position
+                vec4 curr = {xCurr, 0.1, zCurr, 1.0};
+                //Take center
+                vec4 center = {0, 0.1, 0, 1.0};
+                vec4 centerOffset = v4_sub_v4(center, curr);
+                //Translate curr to the center then find the vector between the two
+                vec4 vector = v4_sub_v4(center, centerOffset);
+                vector.w = 0;
+                vector = normalize_v4(vector);
+                //Rotate the vector 90 on the y
+                vector = mat4_mult_v4(rotateY_mat4(90), vector);
+                //Set position behind the ball
+                lookEye = scalar_mult_v4(2, vector);
+                //Move the camera back
+                lookEye = v4_add_v4(lookEye, curr);
+                lookEye.w = 1.0;
+                lookEye.y +=.2;
+                lookAt = curr;
+            }
         }
         glutPostRedisplay();
         currentStep++;
@@ -551,7 +594,7 @@ void idle(void)
 void keyboard(unsigned char key, int mousex, int mousey)
 {
     /*Landon Higinbotham's code starts here*/
-    if (key == ' ') //Animate on space press.
+    if (key == ' ' && currentState == 0) //Animate on space press.
     {
         ballLineNum = 0;
         currentState = 0;
@@ -559,48 +602,83 @@ void keyboard(unsigned char key, int mousex, int mousey)
         tempMax = -1;
         isAnimating = 1;
     }
-
-    if (key == 'o') //Animate on space press.
+    if (key == ' ' && currentState == 1 && isAnimating == 0) //Animate on space press.
     {
         currentState = 1;
         currentStep = 0;
         isAnimating = 1;
     }
-
     if (key == 'w') //Animate on space press.
     {
         lookEye = moveEye(0,-5,0);
         glutPostRedisplay();
     }
-
     if (key == 's') //Animate on space press.
     {
         lookEye = moveEye(0,5,0);
         glutPostRedisplay();
     }
-
     if (key == 'a') //Animate on space press.
     {
         lookEye = moveEye(5,0,0);
         glutPostRedisplay();
     }
-
     if (key == 'd') //Animate on space press.
     {
         lookEye = moveEye(-5,0,0);
         glutPostRedisplay();
     }
-
     if (key == 'e') //Animate on space press.
     {
         lookEye = moveEye(0,0,-.05);
         glutPostRedisplay();
     }
-
     if (key == 'q') //Animate on space press.
     {
         lookEye = moveEye(0,0,.05);
         glutPostRedisplay();
+    }
+    if (key >= 49 && key <= 57) //Animate on space press.
+    {
+        camMode = key-48;
+        glutPostRedisplay();
+    }
+    if (key  == 'r') //Animate on space press.
+    {
+        camMode = 10;
+        glutPostRedisplay();
+    }
+    if (key  == 't') //Animate on space press.
+    {
+        camMode = 11;
+        glutPostRedisplay();
+    }
+    if (key  == 'y') //Animate on space press.
+    {
+        camMode = 12;
+        glutPostRedisplay();
+    }
+    if (key  == 'f') //Animate on space press.
+    {
+        camMode = 13;
+        glutPostRedisplay();
+    }
+    if (key  == 'g') //Animate on space press.
+    {
+        camMode = 14;
+        glutPostRedisplay();
+    }
+    if (key  == 'h') //Animate on space press.
+    {
+        camMode = 15;
+        glutPostRedisplay();
+    }
+    if (key == '0')
+    {
+        camMode = -1;
+        lookEye = startEye;
+        lookAt = startAt;
+        lookUp = startUp;
     }
     /*Landon Higinbotham's code ends here*/
 
