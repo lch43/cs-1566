@@ -88,17 +88,18 @@ vec4 moveEye(double x, double y, double d)
     vec4 consider = lookEye;
     if (x != 0)
     {
-        //This below DOES NOT WORK
-        // double considerRadius = sqrt(pow(consider.x-lookAt.x,2) + pow(consider.z-lookAt.z,2));
-        // angle = x/distance;
-        // //X is X and Z is Y
-        // double firstAngle = atan2(consider.z, consider.y);
-        // consider.x = cos(angle+firstAngle)*considerRadius;
-        // consider.z = sin(angle+firstAngle)*considerRadius;
+        mat4 rotation = rotateY_mat4(x);
+        consider = mat4_mult_v4(rotation, consider);
+        consider.w = 1.0;
     }
     if (y != 0)
     {
-        angle = y/distance;
+        double angle = atan2(consider.z, consider.x)*180.0/M_PI;
+        mat4 rotation = rotateY_mat4(angle);
+        rotation = mat4_mult_mat4(rotation, rotateZ_mat4(y));
+        rotation = mat4_mult_mat4(rotation, rotateY_mat4(angle*-1));
+        consider = mat4_mult_v4(rotation, consider);
+        consider.w = 1.0;
     }
     if (distance+d <.1)
     {
@@ -568,25 +569,25 @@ void keyboard(unsigned char key, int mousex, int mousey)
 
     if (key == 'w') //Animate on space press.
     {
-        lookEye.y += 0.05;
+        lookEye = moveEye(0,-5,0);
         glutPostRedisplay();
     }
 
     if (key == 's') //Animate on space press.
     {
-        lookEye.y -= 0.05;
+        lookEye = moveEye(0,5,0);
         glutPostRedisplay();
     }
 
     if (key == 'a') //Animate on space press.
     {
-        lookEye = moveEye(-.05,0,0);
+        lookEye = moveEye(5,0,0);
         glutPostRedisplay();
     }
 
     if (key == 'd') //Animate on space press.
     {
-        lookEye = moveEye(.05,0,0);
+        lookEye = moveEye(-5,0,0);
         glutPostRedisplay();
     }
 
