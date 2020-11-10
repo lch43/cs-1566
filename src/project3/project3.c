@@ -63,6 +63,9 @@ mat4 ctm = {
 };
 
 GLuint useTexture;
+GLuint lightX;
+GLuint lightY;
+GLuint lightZ;
 
 typedef struct
 {
@@ -72,6 +75,10 @@ typedef struct
     int endIndex;
     int textureId;
     mat4 ctm;
+    double rotateX;
+    double rotateY;
+    double rotateZ;
+    vec4 lightsource[1];
 } ball;
 
 
@@ -86,7 +93,6 @@ typedef struct
 
 vec4 moveEye(double x, double y, double d)
 {
-    double angle = 0;
     double distance = sqrt(pow(lookEye.x-lookAt.x,2) + pow(lookEye.y-lookAt.y,2) + pow(lookEye.z-lookAt.z,2));
     vec4 consider = lookEye;
     if (x != 0)
@@ -151,7 +157,7 @@ int createTable(vec4 * vertices, vec4 * colors, settings settings, int vertOffse
     return vertOffset;
 }
 
-int createBall(vec4 * vertices, vec2 * tex_coords, vec4 * colors, ball * ball, settings settings, int vertOffset, int isLight)
+int createBall(vec4 * vertices, vec2 * tex_coords, vec4 * colors, vec4 * normals, ball * ball, settings settings, int vertOffset, int isLight)
 {
     int startOffset = vertOffset;
     ball->startIndex = vertOffset;
@@ -173,20 +179,19 @@ int createBall(vec4 * vertices, vec2 * tex_coords, vec4 * colors, ball * ball, s
             {
                 vertices[vertOffset] = ball->center;
                 vertices[vertOffset].y += ball->radius;
+                normals[vertOffset] = normalize_v4(v4_sub_v4(vertices[vertOffset], ball->center));
                 vertOffset++;
-                if (isLight == 0)
+                vertices[vertOffset] = (vec4){rowRadius *sin(2* M_PI * j/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * j/settings.ballCols) + ball->center.z, 1.0};
+                normals[vertOffset] = normalize_v4(v4_sub_v4(vertices[vertOffset], ball->center));
+                vertOffset++;
+                vertices[vertOffset] = (vec4){rowRadius *sin(2* M_PI * (j+1)/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * (j+1)/settings.ballCols) + ball->center.z, 1.0};
+                normals[vertOffset] = normalize_v4(v4_sub_v4(vertices[vertOffset], ball->center));
+                vertOffset++;
+                if (isLight == 1)
                 {
-                    vertices[vertOffset] = (vec4){rowRadius *sin(2* M_PI * j/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * j/settings.ballCols) + ball->center.z, 1.0};
-                    vertOffset++;
-                    vertices[vertOffset] = (vec4){rowRadius *sin(2* M_PI * (j+1)/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * (j+1)/settings.ballCols) + ball->center.z, 1.0};
-                    vertOffset++;
-                }
-                else
-                {
-                    vertices[vertOffset] = (vec4){rowRadius *sin(2* M_PI * (j+1)/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * (j+1)/settings.ballCols) + ball->center.z, 1.0};
-                    vertOffset++;
-                    vertices[vertOffset] = (vec4){rowRadius *sin(2* M_PI * j/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * j/settings.ballCols) + ball->center.z, 1.0};
-                    vertOffset++;
+                    normals[vertOffset-1] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-1]));
+                    normals[vertOffset-2] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-2]));
+                    normals[vertOffset-3] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-3]));
                 }
                 
             }
@@ -203,37 +208,33 @@ int createBall(vec4 * vertices, vec2 * tex_coords, vec4 * colors, ball * ball, s
                 vec4 bottomLeft = (vec4){rowRadius *sin(2*M_PI * j/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * j/settings.ballCols) + ball->center.z, 1.0};
                 vec4 bottomRight = (vec4){rowRadius *sin(2*M_PI * (j+1)/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * (j+1)/settings.ballCols) + ball->center.z, 1.0};
 
-                if (isLight == 0)
-                {
-                    vertices[vertOffset] = topLeft;
-                    vertOffset++;
-                    vertices[vertOffset] = bottomLeft;
-                    vertOffset++;
-                    vertices[vertOffset] = bottomRight;
-                    vertOffset++;
+                vertices[vertOffset] = topLeft;
+                normals[vertOffset] = normalize_v4(v4_sub_v4(vertices[vertOffset], ball->center));
+                vertOffset++;
+                vertices[vertOffset] = bottomLeft;
+                normals[vertOffset] = normalize_v4(v4_sub_v4(vertices[vertOffset], ball->center));
+                vertOffset++;
+                vertices[vertOffset] = bottomRight;
+                normals[vertOffset] = normalize_v4(v4_sub_v4(vertices[vertOffset], ball->center));
+                vertOffset++;
 
-                    vertices[vertOffset] = topLeft;
-                    vertOffset++;
-                    vertices[vertOffset] = bottomRight;
-                    vertOffset++;
-                    vertices[vertOffset] = topRight;
-                    vertOffset++;
-                }
-                else
+                vertices[vertOffset] = topLeft;
+                normals[vertOffset] = normalize_v4(v4_sub_v4(vertices[vertOffset], ball->center));
+                vertOffset++;
+                vertices[vertOffset] = bottomRight;
+                normals[vertOffset] = normalize_v4(v4_sub_v4(vertices[vertOffset], ball->center));
+                vertOffset++;
+                vertices[vertOffset] = topRight;
+                normals[vertOffset] = normalize_v4(v4_sub_v4(vertices[vertOffset], ball->center));
+                vertOffset++;
+                if (isLight == 1)
                 {
-                    vertices[vertOffset] = topLeft;
-                    vertOffset++;
-                    vertices[vertOffset] = bottomRight;
-                    vertOffset++;
-                    vertices[vertOffset] = bottomLeft;
-                    vertOffset++;
-
-                    vertices[vertOffset] = topLeft;
-                    vertOffset++;
-                    vertices[vertOffset] = topRight;
-                    vertOffset++;
-                    vertices[vertOffset] = bottomRight;
-                    vertOffset++;
+                    normals[vertOffset-1] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-1]));
+                    normals[vertOffset-2] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-2]));
+                    normals[vertOffset-3] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-3]));
+                    normals[vertOffset-4] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-4]));
+                    normals[vertOffset-5] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-5]));
+                    normals[vertOffset-6] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-6]));
                 }
             }
             
@@ -241,20 +242,20 @@ int createBall(vec4 * vertices, vec2 * tex_coords, vec4 * colors, ball * ball, s
             {
                 vertices[vertOffset] = ball->center;
                 vertices[vertOffset].y -= ball->radius;
+                normals[vertOffset] = normalize_v4(v4_sub_v4(vertices[vertOffset], ball->center));
                 vertOffset++;
-                if (isLight == 0)
+                
+                vertices[vertOffset] = (vec4){rowRadius *sin(2*M_PI * (j+1)/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * (j+1)/settings.ballCols) + ball->center.z, 1.0};
+                normals[vertOffset] = normalize_v4(v4_sub_v4(vertices[vertOffset], ball->center));
+                vertOffset++;
+                vertices[vertOffset] = (vec4){rowRadius *sin(2*M_PI * j/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * j/settings.ballCols) + ball->center.z, 1.0};
+                normals[vertOffset] = normalize_v4(v4_sub_v4(vertices[vertOffset], ball->center));
+                vertOffset++;
+                if (isLight == 1)
                 {
-                    vertices[vertOffset] = (vec4){rowRadius *sin(2*M_PI * (j+1)/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * (j+1)/settings.ballCols) + ball->center.z, 1.0};
-                    vertOffset++;
-                    vertices[vertOffset] = (vec4){rowRadius *sin(2*M_PI * j/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * j/settings.ballCols) + ball->center.z, 1.0};
-                    vertOffset++;
-                }
-                else
-                {
-                    vertices[vertOffset] = (vec4){rowRadius *sin(2*M_PI * j/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * j/settings.ballCols) + ball->center.z, 1.0};
-                    vertOffset++;
-                    vertices[vertOffset] = (vec4){rowRadius *sin(2*M_PI * (j+1)/settings.ballCols) + ball->center.x,y, rowRadius *cos(2*M_PI * (j+1)/settings.ballCols) + ball->center.z, 1.0};
-                    vertOffset++;
+                    normals[vertOffset-1] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-1]));
+                    normals[vertOffset-2] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-2]));
+                    normals[vertOffset-3] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-3]));
                 }
             }
         }
@@ -303,7 +304,7 @@ ball light;
 int tableVertices = 0;
 int verticesPerBall = 0;
 
-int addPoolBalls(vec4 * vertices, vec2 * tex_coords, vec4 * colors, settings Settings,int vertOffset)
+int addPoolBalls(vec4 * vertices, vec2 * tex_coords, vec4 * colors, vec4 * normals, settings Settings,int vertOffset)
 {
     int i=0;
     for (i=0;i<16;i++)
@@ -322,7 +323,7 @@ int addPoolBalls(vec4 * vertices, vec2 * tex_coords, vec4 * colors, settings Set
             poolBalls[i].ctm = translate_mat4(.1*(-3 + 2*col), 0, .1*(-3 + 2*row));
             poolBalls[i].center = (vec4){0, 0.1, 0, 1.0};
         }
-        vertOffset = createBall(vertices,tex_coords, colors, &poolBalls[i], Settings, vertOffset, 0);
+        vertOffset = createBall(vertices,tex_coords, colors, normals, &poolBalls[i], Settings, vertOffset, 0);
     }
 
     return vertOffset;
@@ -347,24 +348,69 @@ void init(void)
     num_vertices = tableVertices + verticesPerBall * Settings.numBalls + verticesPerBall;
     vec4 vertices[num_vertices];
     vec4 colors[num_vertices];
+    vec4 normals[num_vertices];
     vec2 tex_coords[num_vertices];
 
     int vertOffset = 0;
 
     vertOffset += createTable(vertices,colors, Settings, vertOffset);
 
-    vertOffset = addPoolBalls(vertices,tex_coords, colors, Settings, vertOffset);
+    vertOffset = addPoolBalls(vertices,tex_coords, colors, normals, Settings, vertOffset);
 
     light.center = (vec4){0.0,0.1,0.0,1.0};
     light.radius = .05;
     light.ctm = translate_mat4(0,.9,0);
-    vertOffset = createBall(vertices, tex_coords, colors, &light, Settings, vertOffset, 1);
+    vertOffset = createBall(vertices, tex_coords, colors, normals, &light, Settings, vertOffset, 1);
 
     lookEye = startEye;
     lookAt = startAt;
     lookUp = startUp;
     model_view = look_at(lookEye,lookAt,lookUp);
     projection = frustum(startFrustum.left, startFrustum.right, startFrustum.bottom, startFrustum.top, startFrustum.near, startFrustum.far);
+
+    int i=0;
+    for (i=0; i<Settings.tableColumns * Settings.tableRows * 6; i++)
+    {
+        vec4 vert1 = vertices[i];
+        i++;
+        vec4 vert2 = vertices[i];
+        i++;
+        vec4 vert3 = vertices[i];
+
+        vec4 vector1 = v4_sub_v4(vert2, vert1);
+        vec4 vector2 = v4_sub_v4(vert3, vert2);
+        normals[i-2] = normalize_v4(cross_prod_v4(vector1, vector2));
+        normals[i-1] = normals[i-2];
+        normals[i] = normals[i-1];
+    }
+
+    printf("Controls:\n\n");
+    printf("Move Camera:\n");
+    printf("Up: W\n");
+    printf("Down: S\n");
+    printf("Left: A\n");
+    printf("Right: D\n");
+    printf("In: Q\n");
+    printf("Out: E\n\n");
+    printf("Move Light:\n");
+    printf("Up: O\n");
+    printf("Down: U\n");
+    printf("Forward: I\n");
+    printf("Backward: K\n");
+    printf("Left: J\n");
+    printf("Right: L\n\n");
+    printf("Animations:\n");
+    printf("Line up: SPACE (Can only be played once)\n");
+    printf("Circle around cue: SPACE (After balls lined up)\n\n");
+    printf("Camera options:\n");
+    printf("Reset: 0\n");
+    printf("Balls 1-9: 1-9\n");
+    printf("Balls 10: R\n");
+    printf("Balls 11: T\n");
+    printf("Balls 12: Y\n");
+    printf("Balls 13: F\n");
+    printf("Balls 14: G\n");
+    printf("Balls 15: H\n");
     //Landon Higinbotham's code ends
 
     int width = 512;
@@ -397,10 +443,11 @@ void init(void)
     GLuint buffer;
     glGenBuffers(1, &buffer);
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(colors) + sizeof(tex_coords), NULL, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(colors) + sizeof(tex_coords) + sizeof(normals), NULL, GL_STATIC_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
     glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices), sizeof(colors), colors);
     glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(colors), sizeof(tex_coords), tex_coords);
+    glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertices) + sizeof(colors) + sizeof(tex_coords), sizeof(normals), normals);
 
     GLuint vPosition = glGetAttribLocation(program, "vPosition");
     glEnableVertexAttribArray(vPosition);
@@ -420,10 +467,17 @@ void init(void)
     //printf("texture_location: %i\n", texture_location);
 
     /*Landon Higinbotham's code starts here*/
+    GLuint shaderNormals = glGetAttribLocation(program, "vNormal");
+    glEnableVertexAttribArray(shaderNormals);
+    glVertexAttribPointer(shaderNormals, 4, GL_FLOAT, GL_FALSE, 0, (GLvoid *) 0 + (sizeof(vertices) + sizeof(colors) + sizeof(tex_coords)));
+
     ctm_location = glGetUniformLocation(program, "ctm");
     model_view_location = glGetUniformLocation(program, "model_view_matrix");
     projection_location = glGetUniformLocation(program, "projection_matrix");
     useTexture = glGetUniformLocation(program, "use_texture");
+    lightX = glGetUniformLocation(program, "lightX");
+    lightY = glGetUniformLocation(program, "lightY");
+    lightZ = glGetUniformLocation(program, "lightZ");
     glUniform1i(useTexture, 0);
     /*Landon Higinbotham's code ends here*/
 
@@ -438,6 +492,12 @@ void display(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     /*Landon Higinbotham's code starts here*/
     model_view = look_at(lookEye, lookAt, lookUp);
+    light.lightsource[0] = mat4_mult_v4(light.ctm, light.center);
+    glUniform1f(lightX, light.lightsource[0].x);
+    glUniform1f(lightY, light.lightsource[0].y);
+    glUniform1f(lightZ, light.lightsource[0].z);
+
+
     glUniformMatrix4fv(ctm_location, 1, GL_FALSE, (GLfloat *) &ctm);
     glUniformMatrix4fv(model_view_location, 1, GL_FALSE, (GLfloat *) &model_view);
     glUniformMatrix4fv(projection_location, 1, GL_FALSE, (GLfloat *) &projection);
@@ -520,9 +580,25 @@ void idle(void)
                     {
                         goal = (vec4){0.0,0,0.0,1.0};
                     }
+
+                    vec4 subGoalOriginal = v4_sub_v4(goal, ballOriginalSpot);
                     
-                    vec4 translation = v4_add_v4(scalar_mult_v4(alpha, v4_sub_v4(goal, ballOriginalSpot)), ballOriginalSpot);
-                    poolBalls[ball].ctm = translate_mat4(translation.x, translation.y, translation.z);
+                    vec4 translation = v4_add_v4(scalar_mult_v4(alpha, subGoalOriginal), ballOriginalSpot);
+                    mat4 translationMat = translate_mat4(translation.x, translation.y, translation.z);
+
+                    //First we need the X and Z that it is heading
+                    double direction = atan2(subGoalOriginal.z, subGoalOriginal.x);
+                    double amountY = sin(direction) * mag_v4(subGoalOriginal)*alpha;
+                    double amountX = cos(direction) * mag_v4(subGoalOriginal)*alpha;
+
+                    poolBalls[ball].rotateY = -1*(amountY/.1)*180/M_PI;
+                    poolBalls[ball].rotateX = -1*(amountX/.1)*180/M_PI;
+
+                    mat4 rotationMat = translate_mat4(0,-.1,0);
+                    rotationMat = mat4_mult_mat4(rotateX_mat4(poolBalls[ball].rotateX), rotationMat);
+                    rotationMat = mat4_mult_mat4(rotateZ_mat4(poolBalls[ball].rotateY), rotationMat);
+                    rotationMat = mat4_mult_mat4(translate_mat4(0,.1,0), rotationMat);
+                    poolBalls[ball].ctm = mat4_mult_mat4(translationMat, rotationMat);
                 }
                 else if(ballLineNum == 16)
                 {
@@ -554,16 +630,6 @@ void idle(void)
                 float radius = -3+.2*(i-1);
                 float zCurr = sin(M_PI/2 - (2*M_PI)*(currentStep/1500*(i/15.0))) * radius;
                 float xCurr = cos(M_PI/2 - (2*M_PI)*(currentStep/1500*(i/15.0))) * radius;
-                /*float zPrev = sin(M_PI/2 - (2*M_PI)*((currentStep-1)/1500*(i/15.0))) * radius;
-                float xPrev = cos(M_PI/2 - (2*M_PI)*((currentStep-1)/1500*(i/15.0))) * radius;
-                vec4 curr = {xCurr, 0.1, zCurr, 1.0};
-                vec4 prev = {xPrev, 0.1, zPrev, 1.0};
-                vec4 vector = v4_sub_v4(prev, curr);
-                vector.w = 0;
-                vector = normalize_v4(vector);
-                lookEye = scalar_mult_v4(1, vector);
-                lookEye.y += 1;
-                lookAt = curr;*/
                 //Take current position
                 vec4 curr = {xCurr, 0.1, zCurr, 1.0};
                 //Take center
@@ -679,6 +745,38 @@ void keyboard(unsigned char key, int mousex, int mousey)
         lookEye = startEye;
         lookAt = startAt;
         lookUp = startUp;
+    }
+
+    //Move light
+    if (key == 'i')//Forward
+    {
+        light.ctm.w.z -= .1;
+        glutPostRedisplay();
+    }
+    if (key == 'k')//Backwards
+    {
+        light.ctm.w.z += .1;
+        glutPostRedisplay();
+    }
+    if (key == 'u')//Down
+    {
+        light.ctm.w.y -= .1;
+        glutPostRedisplay();
+    }
+    if (key == 'o')//Up
+    {
+        light.ctm.w.y += .1;
+        glutPostRedisplay();
+    }
+    if (key == 'j')//Left
+    {
+        light.ctm.w.x -= .1;
+        glutPostRedisplay();
+    }
+    if (key == 'l')//Right
+    {
+        light.ctm.w.x += .1;
+        glutPostRedisplay();
     }
     /*Landon Higinbotham's code ends here*/
 
