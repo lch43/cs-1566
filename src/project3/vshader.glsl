@@ -27,6 +27,7 @@ void main()
 	}
 	else
 	{
+		//Create shadow
 		float x = light_position.x - light_position.y*(light_position.x-position.x)/(light_position.y-position.y);
 		float z = light_position.z - light_position.y*(light_position.z-position.z)/(light_position.y-position.y);
 		gl_Position = projection_matrix * model_view_matrix * vec4(x,0.001,z,1);

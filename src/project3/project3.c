@@ -64,6 +64,7 @@ mat4 ctm = {
 
 GLuint eye_position;
 GLuint light_position;
+GLuint isLightBulb;
 GLuint useTexture;
 GLuint isShadow;
 
@@ -91,6 +92,7 @@ typedef struct
     int ballCols;
 } settings;
 
+//Function to move eye based on key pressed. This is simulated as if the eye is on a glass ball around the center
 vec4 moveEye(double x, double y, double d)
 {
     double distance = sqrt(pow(lookEye.x-lookAt.x,2) + pow(lookEye.y-lookAt.y,2) + pow(lookEye.z-lookAt.z,2));
@@ -121,6 +123,7 @@ vec4 moveEye(double x, double y, double d)
     return scalar_mult_v4(distance+d, vector);
 }
 
+//Given table settings create a flat table.
 int createTable(vec4 * vertices, vec4 * colors, settings settings, int vertOffset)
 {
     int rows = settings.tableRows;
@@ -157,6 +160,7 @@ int createTable(vec4 * vertices, vec4 * colors, settings settings, int vertOffse
     return vertOffset;
 }
 
+//Given specifications create a ball.
 int createBall(vec4 * vertices, vec2 * tex_coords, vec4 * colors, vec4 * normals, ball * ball, settings settings, int vertOffset, int isLight)
 {
     int startOffset = vertOffset;
@@ -338,8 +342,8 @@ void init(void)
     settings Settings;
     Settings.tableColumns = 5;
     Settings.tableRows = 5;
-    Settings.ballCols = 10;
-    Settings.ballRows = 10;
+    Settings.ballCols = 20;
+    Settings.ballRows = 20;
     Settings.numBalls = 16;
 
     tableVertices = Settings.tableColumns * Settings.tableRows * 6;
@@ -478,6 +482,7 @@ void init(void)
     eye_position = glGetUniformLocation(program, "eye_position");
     useTexture = glGetUniformLocation(program, "use_texture");
     isShadow = glGetUniformLocation(program, "is_shadow");
+    isLightBulb = glGetUniformLocation(program, "is_light");
     glUniform1i(useTexture, 0);
     glUniform1i(isShadow, 0);
     /*Landon Higinbotham's code ends here*/
@@ -503,6 +508,7 @@ void display(void)
     glUniformMatrix4fv(projection_location, 1, GL_FALSE, (GLfloat *) &projection);
     //Draw table
     glUniform1i(useTexture, 0);
+    glUniform1i(isLightBulb, 0);
     glUniform1i(isShadow, 0);
     glDrawArrays(GL_TRIANGLES, 0, tableVertices);
     //Draw pool balls
@@ -517,6 +523,7 @@ void display(void)
         glDrawArrays(GL_TRIANGLES, poolBalls[i].startIndex, poolBalls[i].endIndex-poolBalls[i].startIndex);
     }
         glUniformMatrix4fv(ctm_location, 1, GL_FALSE, (GLfloat *) &light.ctm);
+        glUniform1i(isLightBulb, 1);
         glUniform1i(isShadow, 0);
         glUniform1i(useTexture, 0);
         glDrawArrays(GL_TRIANGLES, light.startIndex, light.endIndex-light.startIndex);
@@ -591,19 +598,6 @@ void idle(void)
                     vec4 translation = v4_add_v4(scalar_mult_v4(alpha, subGoalOriginal), ballOriginalSpot);
                     mat4 translationMat = translate_mat4(translation.x, translation.y, translation.z);
 
-                    //First we need the X and Z that it is heading
-                    /*double direction = atan2(subGoalOriginal.z, subGoalOriginal.x) *-1;
-                    printf("%f\n", direction*180/M_PI);
-                    double amountY = sin(direction) * mag_v4(subGoalOriginal)*alpha;
-                    double amountX = cos(direction) * mag_v4(subGoalOriginal)*alpha;
-
-                    poolBalls[ball].rotateY = (amountY/.1)*180/M_PI;
-                    poolBalls[ball].rotateX = (amountX/.1)*180/M_PI;
-
-                    mat4 rotationMat = translate_mat4(0,-.1,0);
-                    rotationMat = mat4_mult_mat4(rotateX_mat4(poolBalls[ball].rotateX), rotationMat);
-                    rotationMat = mat4_mult_mat4(rotateY_mat4(poolBalls[ball].rotateY), rotationMat);
-                    rotationMat = mat4_mult_mat4(translate_mat4(0,.1,0), rotationMat);*/
                     vec4 arbVector = cross_prod_v4((vec4){0,1,0,0}, normalize_v4(subGoalOriginal));
                     float d = sqrt(arbVector.z*arbVector.z + arbVector.y*arbVector.y);
                     mat4 rotationMat = translate_mat4(0,-.1,0);
