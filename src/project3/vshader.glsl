@@ -12,9 +12,7 @@ varying vec4 position;
 uniform mat4 model_view_matrix;
 uniform mat4 projection_matrix;
 uniform mat4 ctm;
-uniform float lightX;
-uniform float lightY;
-uniform float lightZ;
+uniform vec4 light_position;
 uniform int is_shadow;
 
 void main()
@@ -29,8 +27,8 @@ void main()
 	}
 	else
 	{
-		float x = lightX - lightY*(lightX-position.x)/(lightY-position.y);
-		float z = lightZ - lightY*(lightZ-position.z)/(lightY-position.y);;
+		float x = light_position.x - light_position.y*(light_position.x-position.x)/(light_position.y-position.y);
+		float z = light_position.z - light_position.y*(light_position.z-position.z)/(light_position.y-position.y);
 		gl_Position = projection_matrix * model_view_matrix * vec4(x,0.001,z,1);
 		color = vec4(0,0,0,1);
 	}

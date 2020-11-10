@@ -62,11 +62,10 @@ mat4 ctm = {
     (vec4) {0,0,0,1},
 };
 
+GLuint eye_position;
+GLuint light_position;
 GLuint useTexture;
 GLuint isShadow;
-GLuint lightX;
-GLuint lightY;
-GLuint lightZ;
 
 typedef struct
 {
@@ -254,7 +253,6 @@ int createBall(vec4 * vertices, vec2 * tex_coords, vec4 * colors, vec4 * normals
                 vertOffset++;
                 if (isLight == 1)
                 {
-                    printf("Here\n");
                     normals[vertOffset-1] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-1]));
                     normals[vertOffset-2] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-2]));
                     normals[vertOffset-3] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-3]));
@@ -294,7 +292,7 @@ int createBall(vec4 * vertices, vec2 * tex_coords, vec4 * colors, vec4 * normals
         tex_coords[i] = (vec2){x * (bottomRight.x-topLeft.x) + topLeft.x, z * (bottomRight.y-topLeft.y) + topLeft.y};
         if (isLight == 1)
         {
-            colors[i] = (vec4){1,1,1,1};
+            colors[i] = (vec4){1.0,1.0,1.0,1.0};
         }
     }
     return vertOffset;
@@ -476,11 +474,10 @@ void init(void)
     ctm_location = glGetUniformLocation(program, "ctm");
     model_view_location = glGetUniformLocation(program, "model_view_matrix");
     projection_location = glGetUniformLocation(program, "projection_matrix");
+    light_position = glGetUniformLocation(program, "light_position");
+    eye_position = glGetUniformLocation(program, "eye_position");
     useTexture = glGetUniformLocation(program, "use_texture");
     isShadow = glGetUniformLocation(program, "is_shadow");
-    lightX = glGetUniformLocation(program, "lightX");
-    lightY = glGetUniformLocation(program, "lightY");
-    lightZ = glGetUniformLocation(program, "lightZ");
     glUniform1i(useTexture, 0);
     glUniform1i(isShadow, 0);
     /*Landon Higinbotham's code ends here*/
@@ -497,9 +494,8 @@ void display(void)
     /*Landon Higinbotham's code starts here*/
     model_view = look_at(lookEye, lookAt, lookUp);
     light.lightsource[0] = mat4_mult_v4(light.ctm, light.center);
-    glUniform1f(lightX, light.lightsource[0].x);
-    glUniform1f(lightY, light.lightsource[0].y);
-    glUniform1f(lightZ, light.lightsource[0].z);
+    glUniform4fv(light_position, 1, (GLfloat *) &light.lightsource[0]);
+    glUniform4fv(eye_position, 1, (GLfloat *) &lookEye);
 
 
     glUniformMatrix4fv(ctm_location, 1, GL_FALSE, (GLfloat *) &ctm);
@@ -596,16 +592,31 @@ void idle(void)
                     mat4 translationMat = translate_mat4(translation.x, translation.y, translation.z);
 
                     //First we need the X and Z that it is heading
-                    double direction = atan2(subGoalOriginal.z, subGoalOriginal.x);
+                    /*double direction = atan2(subGoalOriginal.z, subGoalOriginal.x) *-1;
+                    printf("%f\n", direction*180/M_PI);
                     double amountY = sin(direction) * mag_v4(subGoalOriginal)*alpha;
                     double amountX = cos(direction) * mag_v4(subGoalOriginal)*alpha;
 
-                    poolBalls[ball].rotateY = -1*(amountY/.1)*180/M_PI;
-                    poolBalls[ball].rotateX = -1*(amountX/.1)*180/M_PI;
+                    poolBalls[ball].rotateY = (amountY/.1)*180/M_PI;
+                    poolBalls[ball].rotateX = (amountX/.1)*180/M_PI;
 
                     mat4 rotationMat = translate_mat4(0,-.1,0);
                     rotationMat = mat4_mult_mat4(rotateX_mat4(poolBalls[ball].rotateX), rotationMat);
-                    rotationMat = mat4_mult_mat4(rotateZ_mat4(poolBalls[ball].rotateY), rotationMat);
+                    rotationMat = mat4_mult_mat4(rotateY_mat4(poolBalls[ball].rotateY), rotationMat);
+                    rotationMat = mat4_mult_mat4(translate_mat4(0,.1,0), rotationMat);*/
+                    vec4 arbVector = cross_prod_v4((vec4){0,1,0,0}, normalize_v4(subGoalOriginal));
+                    float d = sqrt(arbVector.z*arbVector.z + arbVector.y*arbVector.y);
+                    mat4 rotationMat = translate_mat4(0,-.1,0);
+                    //Align with X-Z plane
+                    rotationMat = mat4_mult_mat4(rotateX_mat4_arb(-1*arbVector.y, arbVector.z, d), rotationMat); //Rotate X
+                    //Align wih Z axis
+                    rotationMat = mat4_mult_mat4(trans_mat4(rotateY_mat4_arb(-1*arbVector.x, d)), rotationMat); //Rotate Y
+                    //Rotate Z
+                    rotationMat = mat4_mult_mat4(rotateZ_mat4(mag_v4(subGoalOriginal)*alpha/.1*-180/M_PI), rotationMat);
+                    //Reverse Y 
+                    rotationMat = mat4_mult_mat4(rotateY_mat4_arb(-1*arbVector.x, d), rotationMat); //Reverse Y
+                    //Reverse X
+                    rotationMat = mat4_mult_mat4(trans_mat4(rotateX_mat4_arb(-1*arbVector.y, arbVector.z, d)), rotationMat); //Reverse X
                     rotationMat = mat4_mult_mat4(translate_mat4(0,.1,0), rotationMat);
                     poolBalls[ball].ctm = mat4_mult_mat4(translationMat, rotationMat);
                 }
@@ -650,6 +661,7 @@ void idle(void)
                 vector = normalize_v4(vector);
                 //Rotate the vector 90 on the y
                 vector = mat4_mult_v4(rotateY_mat4(90), vector);
+                vector = normalize_v4(vector);
                 //Set position behind the ball
                 lookEye = scalar_mult_v4(2, vector);
                 //Move the camera back
