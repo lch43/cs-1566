@@ -63,6 +63,7 @@ mat4 ctm = {
 };
 
 GLuint useTexture;
+GLuint isShadow;
 GLuint lightX;
 GLuint lightY;
 GLuint lightZ;
@@ -253,6 +254,7 @@ int createBall(vec4 * vertices, vec2 * tex_coords, vec4 * colors, vec4 * normals
                 vertOffset++;
                 if (isLight == 1)
                 {
+                    printf("Here\n");
                     normals[vertOffset-1] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-1]));
                     normals[vertOffset-2] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-2]));
                     normals[vertOffset-3] = normalize_v4(v4_sub_v4(ball->center, vertices[vertOffset-3]));
@@ -475,10 +477,12 @@ void init(void)
     model_view_location = glGetUniformLocation(program, "model_view_matrix");
     projection_location = glGetUniformLocation(program, "projection_matrix");
     useTexture = glGetUniformLocation(program, "use_texture");
+    isShadow = glGetUniformLocation(program, "is_shadow");
     lightX = glGetUniformLocation(program, "lightX");
     lightY = glGetUniformLocation(program, "lightY");
     lightZ = glGetUniformLocation(program, "lightZ");
     glUniform1i(useTexture, 0);
+    glUniform1i(isShadow, 0);
     /*Landon Higinbotham's code ends here*/
 
     glEnable(GL_CULL_FACE);
@@ -503,6 +507,7 @@ void display(void)
     glUniformMatrix4fv(projection_location, 1, GL_FALSE, (GLfloat *) &projection);
     //Draw table
     glUniform1i(useTexture, 0);
+    glUniform1i(isShadow, 0);
     glDrawArrays(GL_TRIANGLES, 0, tableVertices);
     //Draw pool balls
     int i=0;
@@ -510,9 +515,13 @@ void display(void)
     {
         glUniformMatrix4fv(ctm_location, 1, GL_FALSE, (GLfloat *) &poolBalls[i].ctm);
         glUniform1i(useTexture, 1);
+        glUniform1i(isShadow, 0);
+        glDrawArrays(GL_TRIANGLES, poolBalls[i].startIndex, poolBalls[i].endIndex-poolBalls[i].startIndex);
+        glUniform1i(isShadow, 1);
         glDrawArrays(GL_TRIANGLES, poolBalls[i].startIndex, poolBalls[i].endIndex-poolBalls[i].startIndex);
     }
         glUniformMatrix4fv(ctm_location, 1, GL_FALSE, (GLfloat *) &light.ctm);
+        glUniform1i(isShadow, 0);
         glUniform1i(useTexture, 0);
         glDrawArrays(GL_TRIANGLES, light.startIndex, light.endIndex-light.startIndex);
     /*Landon Higinbotham's code ends here*/
